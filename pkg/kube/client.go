@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -578,6 +579,8 @@ func getManagedFieldsManager() string {
 	return filepath.Base(os.Args[0])
 }
 
+const fieldManagerServerSideApply = "helm"
+
 func batchPerform(infos ResourceList, fn func(*resource.Info) error, errs chan<- error) {
 	var kind string
 	var wg sync.WaitGroup
@@ -595,16 +598,122 @@ func batchPerform(infos ResourceList, fn func(*resource.Info) error, errs chan<-
 	}
 }
 
+// https://github.com/kubernetes/kubectl/blob/197123726db24c61aa0f78d1f0ba6e91a2ec2f35/pkg/cmd/apply/apply.go#L439
+func isIncompatibleServerError(err error) bool {
+	// 415: Unsupported media type means we're talking to a server which doesn't
+	// support server-side apply.
+	if _, ok := err.(*apierrors.StatusError); !ok {
+		// Non-StatusError means the error isn't because the server is incompatible.
+		return false
+	}
+	return err.(*apierrors.StatusError).Status().Code == http.StatusUnsupportedMediaType
+}
+
 func createResource(info *resource.Info) error {
-	return retry.RetryOnConflict(
-		retry.DefaultRetry,
-		func() error {
-			obj, err := resource.NewHelper(info.Client, info.Mapping).WithFieldManager(getManagedFieldsManager()).Create(info.Namespace, true, info.Object)
-			if err != nil {
-				return err
-			}
-			return info.Refresh(obj, true)
-		})
+	helper := resource.NewHelper(
+		info.Client,
+		info.Mapping).
+		DryRun(false).
+		WithFieldManager(fieldManagerServerSideApply).
+		WithFieldValidation("strict")
+
+	// Send the full object to be applied on the server side.
+	data, err := runtime.Encode(unstructured.UnstructuredJSONScheme, info.Object)
+	if err != nil {
+		return cmdutil.AddSourceToErr("serverside-apply", info.Source, err)
+	}
+	ForceConflicts := false
+	options := metav1.PatchOptions{
+		Force: &ForceConflicts,
+	}
+	obj, err := helper.Patch(
+		info.Namespace,
+		info.Name,
+		types.ApplyPatchType,
+		data,
+		&options,
+	)
+	if err != nil {
+		if isIncompatibleServerError(err) {
+			err = fmt.Errorf("Server-side apply not available on the server: (%v)", err)
+		}
+		if apierrors.IsConflict(err) {
+			err = fmt.Errorf(`%v
+Please review the fields above--they currently have other managers. Here
+are the ways you can resolve this warning:
+* If you intend to manage all of these fields, please re-run the apply
+  command with the `+"`--force-conflicts`"+` flag.
+* If you do not intend to manage all of the fields, please edit your
+  manifest to remove references to the fields that should keep their
+  current managers.
+* You may co-own fields by updating your manifest to match the existing
+  value; in this case, you'll become the manager if the other manager(s)
+  stop managing the field (remove it from their configuration).
+See https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts`, err)
+		}
+		return err
+	}
+
+	info.Refresh(obj, true)
+
+	// Migrate managed fields if necessary.
+	//
+	// By checking afterward instead of fetching the object beforehand and
+	// unconditionally fetching we can make 3 network requests in the rare
+	// case of migration and 1 request if migration is unnecessary.
+	//
+	// To check beforehand means 2 requests for most operations, and 3
+	// requests in worst case.
+	//if err = o.saveLastApplyAnnotationIfNecessary(helper, info); err != nil {
+	//	fmt.Fprintf(o.ErrOut, warningMigrationLastAppliedFailed, err.Error())
+	//} else if performedMigration, err := o.migrateToSSAIfNecessary(helper, info); err != nil {
+	//	// Print-error as a warning.
+	//	// This is a non-fatal error because object was successfully applied
+	//	// above, but it might have issues since migration failed.
+	//	//
+	//	// This migration will be re-attempted if necessary upon next
+	//	// apply.
+	//	fmt.Fprintf(o.ErrOut, warningMigrationPatchFailed, err.Error())
+	//} else if performedMigration {
+	//	if obj, err = helper.Patch(
+	//		info.Namespace,
+	//		info.Name,
+	//		types.ApplyPatchType,
+	//		data,
+	//		&options,
+	//	); err != nil {
+	//		// Re-send original SSA patch (this will allow dropped fields to
+	//		// finally be removed)
+	//		fmt.Fprintf(o.ErrOut, warningMigrationReapplyFailed, err.Error())
+	//	} else {
+	//		info.Refresh(obj, false)
+	//	}
+	//}
+
+	//WarnIfDeleting(info.Object, o.ErrOut)
+
+	//if err := o.MarkObjectVisited(info); err != nil {
+	//	return err
+	//}
+
+	//if o.shouldPrintObject() {
+	//	return nil
+	//}
+
+	//printer, err := o.ToPrinter("serverside-applied")
+	//if err != nil {
+	//	return err
+	//}
+
+	//if err = printer.PrintObj(info.Object, o.Out); err != nil {
+	//	return err
+	//}
+
+	//obj, err := resource.NewHelper(info.Client, info.Mapping).WithFieldManager(getManagedFieldsManager()).Create(info.Namespace, true, info.Object)
+	//if err != nil {
+	//	return err
+	//}
+	return info.Refresh(obj, true)
 }
 
 func deleteResource(info *resource.Info, policy metav1.DeletionPropagation) error {
