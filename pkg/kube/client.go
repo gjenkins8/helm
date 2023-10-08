@@ -615,7 +615,7 @@ func createResource(info *resource.Info) error {
 		info.Mapping).
 		DryRun(false).
 		WithFieldManager(fieldManagerServerSideApply).
-		WithFieldValidation("strict")
+		WithFieldValidation("Strict")
 
 	// Send the full object to be applied on the server side.
 	data, err := runtime.Encode(unstructured.UnstructuredJSONScheme, info.Object)

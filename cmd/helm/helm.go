@@ -62,7 +62,7 @@ func main() {
 	// It is set here to the full name of "helm" so that renaming of helm to
 	// another name (e.g., helm2 or helm3) does not change the name of the
 	// manager as picked up by the automated name detection.
-	kube.ManagedFieldsManager = "helm"
+	kube.ManagedFieldsManager = "helm" // TODO: SSA
 
 	actionConfig := new(action.Configuration)
 	cmd, err := newRootCmd(actionConfig, os.Stdout, os.Args[1:])
