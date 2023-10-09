@@ -141,7 +141,7 @@ func (c *Client) IsReachable() error {
 // Create creates Kubernetes resources specified in the resource list.
 func (c *Client) Create(resources ResourceList) (*Result, error) {
 	c.Log("creating %d resource(s)", len(resources))
-	if err := perform(resources, createResource); err != nil {
+	if err := perform(resources, patchResource); err != nil {
 		return nil, err
 	}
 	return &Result{Created: resources}, nil
@@ -407,7 +407,7 @@ func (c *Client) Update(original, target ResourceList, force bool) (*Result, err
 			res.Created = append(res.Created, info)
 
 			// Since the resource does not exist, create it.
-			if err := createResource(info); err != nil {
+			if err := patchResource(info); err != nil {
 				return errors.Wrap(err, "failed to create resource")
 			}
 
@@ -422,7 +422,7 @@ func (c *Client) Update(original, target ResourceList, force bool) (*Result, err
 			return errors.Errorf("no %s with the name %q found", kind, info.Name)
 		}
 
-		if err := updateResource(c, info, originalInfo.Object, force); err != nil {
+		if err := patchResource(info); err != nil {
 			c.Log("error updating the resource %q:\n\t %v", info.Name, err)
 			updateErrors = append(updateErrors, err.Error())
 		}
@@ -609,7 +609,7 @@ func isIncompatibleServerError(err error) bool {
 	return err.(*apierrors.StatusError).Status().Code == http.StatusUnsupportedMediaType
 }
 
-func createResource(info *resource.Info) error {
+func patchResource(info *resource.Info) error {
 	helper := resource.NewHelper(
 		info.Client,
 		info.Mapping).
@@ -654,7 +654,7 @@ See https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts`
 		return err
 	}
 
-	info.Refresh(obj, true)
+	//info.Refresh(obj, true)
 
 	// Migrate managed fields if necessary.
 	//
@@ -774,48 +774,6 @@ func createPatch(target *resource.Info, current runtime.Object) ([]byte, types.P
 
 	patch, err := strategicpatch.CreateThreeWayMergePatch(oldData, newData, currentData, patchMeta, true)
 	return patch, types.StrategicMergePatchType, err
-}
-
-func updateResource(c *Client, target *resource.Info, currentObj runtime.Object, force bool) error {
-	var (
-		obj    runtime.Object
-		helper = resource.NewHelper(target.Client, target.Mapping).WithFieldManager(getManagedFieldsManager())
-		kind   = target.Mapping.GroupVersionKind.Kind
-	)
-
-	// if --force is applied, attempt to replace the existing resource with the new object.
-	if force {
-		var err error
-		obj, err = helper.Replace(target.Namespace, target.Name, true, target.Object)
-		if err != nil {
-			return errors.Wrap(err, "failed to replace object")
-		}
-		c.Log("Replaced %q with kind %s for kind %s", target.Name, currentObj.GetObjectKind().GroupVersionKind().Kind, kind)
-	} else {
-		patch, patchType, err := createPatch(target, currentObj)
-		if err != nil {
-			return errors.Wrap(err, "failed to create patch")
-		}
-
-		if patch == nil || string(patch) == "{}" {
-			c.Log("Looks like there are no changes for %s %q", kind, target.Name)
-			// This needs to happen to make sure that Helm has the latest info from the API
-			// Otherwise there will be no labels and other functions that use labels will panic
-			if err := target.Get(); err != nil {
-				return errors.Wrap(err, "failed to refresh resource information")
-			}
-			return nil
-		}
-		// send patch to server
-		c.Log("Patch %s %q in namespace %s", kind, target.Name, target.Namespace)
-		obj, err = helper.Patch(target.Namespace, target.Name, patchType, patch, nil)
-		if err != nil {
-			return errors.Wrapf(err, "cannot patch %q with kind %s", target.Name, kind)
-		}
-	}
-
-	target.Refresh(obj, true)
-	return nil
 }
 
 func (c *Client) watchUntilReady(timeout time.Duration, info *resource.Info) error {
