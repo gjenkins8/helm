@@ -27,7 +27,7 @@ import (
 )
 
 // ref: http://www.yaml.org/spec/1.2/spec.html#id2803362
-var testCoalesceValuesYaml = []byte(`
+var testCoalesceValuesYaml = []byte(`---
 top: yup
 bottom: null
 right: Null
@@ -47,6 +47,7 @@ pequod:
   global:
     name: Stinky
     harpooner: Tashtego
+    remove_global: null
     nested:
       boat: false
       sail: true
@@ -56,6 +57,7 @@ pequod:
     nested:
       foo: true
       bar: null
+  remove: null
 `)
 
 func withDeps(c *chart.Chart, deps ...*chart.Chart) *chart.Chart {
@@ -80,7 +82,9 @@ func TestCoalesceValues(t *testing.T) {
 			"scope":    "moby",
 			"top":      "nope",
 			"global": map[string]interface{}{
-				"nested2": map[string]interface{}{"l0": "moby"},
+				"nested2": map[string]interface{}{
+					"l0": "moby",
+				},
 			},
 		},
 	},
@@ -90,7 +94,15 @@ func TestCoalesceValues(t *testing.T) {
 				"name":  "pequod",
 				"scope": "pequod",
 				"global": map[string]interface{}{
-					"nested2": map[string]interface{}{"l1": "pequod"},
+					"nested2": map[string]interface{}{
+						"l1": "pequod",
+					},
+					"remove_global": map[string]interface{}{
+						"shouldberemoved": "true",
+					},
+				},
+				"remove": map[string]interface{}{
+					"shouldberemoved": "true",
 				},
 			},
 		},
@@ -200,14 +212,29 @@ func TestCoalesceValues(t *testing.T) {
 		t.Error("Expected nested boat key to be removed, still present")
 	}
 
-	subchart := v["pequod"].(map[string]interface{})["ahab"].(map[string]interface{})
-	if _, ok := subchart["boat"]; ok {
+	pequodValues := v["pequod"].(map[string]interface{})
+	is.NotEqual(pequodValues, v)
+	pequodAhabValues := pequodValues["ahab"].(map[string]interface{})
+
+	if _, ok := pequodAhabValues["boat"]; ok {
 		t.Error("Expected subchart boat key to be removed, still present")
 	}
 
-	if _, ok := subchart["nested"].(map[string]interface{})["bar"]; ok {
+	if _, ok := pequodAhabValues["nested"].(map[string]interface{})["bar"]; ok {
 		t.Error("Expected subchart nested bar key to be removed, still present")
 	}
+
+	pequodGlobalValues := pequodValues["global"].(map[string]interface{})
+	if _, ok := pequodGlobalValues["remove_global"]; ok {
+		t.Error("Expected pequod subchart global's remove_global key to be removed, still present")
+	}
+
+	if _, ok := pequodValues["remove"]; ok {
+		t.Error("Expected pequod subchart remove key to be removed, still present")
+	}
+
+	jpequodValues, _ := json.MarshalIndent(pequodValues, "", "  ")
+	t.Logf("pequodValues Values: %s", string(jpequodValues))
 
 	// CoalesceValues should not mutate the passed arguments
 	is.Equal(valsCopy, vals)
@@ -354,13 +381,23 @@ func TestMergeValues(t *testing.T) {
 		t.Error("Expected nested boat key to be present but it was removed")
 	}
 
-	subchart := v["pequod"].(map[string]interface{})["ahab"].(map[string]interface{})
-	if _, ok := subchart["boat"]; !ok {
+	pequodValues := v["pequod"].(map[string]interface{})
+	pequodAhabValues := pequodValues["ahab"].(map[string]interface{})
+	if _, ok := pequodAhabValues["boat"]; !ok {
 		t.Error("Expected subchart boat key to be present but it was removed")
 	}
 
-	if _, ok := subchart["nested"].(map[string]interface{})["bar"]; !ok {
+	pequodGlobalValues := pequodValues["global"].(map[string]interface{})
+	if _, ok := pequodGlobalValues["remove_global"]; !ok {
+		t.Error("Expected pequod subchart global's remove_global key to be present but it was removed")
+	}
+
+	if _, ok := pequodAhabValues["nested"].(map[string]interface{})["bar"]; !ok {
 		t.Error("Expected subchart nested bar key to be present but it was removed")
+	}
+
+	if _, ok := pequodValues["remove"]; !ok {
+		t.Error("Expected subchart remove key to be present but it was removed")
 	}
 
 	// CoalesceValues should not mutate the passed arguments
