@@ -24,8 +24,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"helm.sh/helm/v4/pkg/plugin"
-	"helm.sh/helm/v4/pkg/plugin/installer"
+	plugin "helm.sh/helm/v4/pkg/legacyplugin"
+	"helm.sh/helm/v4/pkg/legacyplugin/installer"
 )
 
 type pluginUpdateOptions struct {
@@ -54,22 +54,36 @@ func newPluginUpdateCmd(out io.Writer) *cobra.Command {
 
 func (o *pluginUpdateOptions) complete(args []string) error {
 	if len(args) == 0 {
-		return errors.New("please provide plugin name to update")
+		return fmt.Errorf("please provide plugin name to update")
 	}
 	o.names = args
 	return nil
 }
 
 func (o *pluginUpdateOptions) run(out io.Writer) error {
+<<<<<<< HEAD
 	installer.Debug = settings.Debug
 	slog.Debug("loading installed plugins", "path", settings.PluginsDirectory)
+||||||| parent of 785acec0b (extism)
+	installer.Debug = settings.Debug
+	Debug("loading installed plugins from %s", settings.PluginsDirectory)
+=======
+	Debug("loading installed plugins from %s", settings.PluginsDirectory)
+>>>>>>> 785acec0b (extism)
 	plugins, err := plugin.FindPlugins(settings.PluginsDirectory)
 	if err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	var errorPlugins []error
+||||||| parent of 785acec0b (extism)
+	var errorPlugins []string
+=======
+	var errs []error
+>>>>>>> 785acec0b (extism)
 
 	for _, name := range o.names {
+<<<<<<< HEAD
 		if found := findPlugin(plugins, name); found != nil {
 			if err := updatePlugin(found); err != nil {
 				errorPlugins = append(errorPlugins, fmt.Errorf("failed to update plugin %s, got error (%v)", name, err))
@@ -78,19 +92,52 @@ func (o *pluginUpdateOptions) run(out io.Writer) error {
 			}
 		} else {
 			errorPlugins = append(errorPlugins, fmt.Errorf("plugin: %s not found", name))
+||||||| parent of 785acec0b (extism)
+		if found := findPlugin(plugins, name); found != nil {
+			if err := updatePlugin(found); err != nil {
+				errorPlugins = append(errorPlugins, fmt.Sprintf("Failed to update plugin %s, got error (%v)", name, err))
+			} else {
+				fmt.Fprintf(out, "Updated plugin: %s\n", name)
+			}
+		} else {
+			errorPlugins = append(errorPlugins, fmt.Sprintf("Plugin: %s not found", name))
+=======
+		found := findPlugin(plugins, name)
+		if found == nil {
+			errs = append(errs, fmt.Errorf("plugin: %s not found", name))
+			continue
+>>>>>>> 785acec0b (extism)
 		}
+
+		if err := updatePlugin(found, out); err != nil {
+			errs = append(errs, fmt.Errorf("Failed to update plugin %s: %w", name, err))
+			continue
+		}
+
+		fmt.Fprintf(out, "Updated plugin: %s\n", name)
 	}
+<<<<<<< HEAD
 	if len(errorPlugins) > 0 {
 		return errors.Join(errorPlugins...)
 	}
 	return nil
+||||||| parent of 785acec0b (extism)
+	if len(errorPlugins) > 0 {
+		return errors.New(strings.Join(errorPlugins, "\n"))
+	}
+	return nil
+=======
+
+	return errors.Join(errs...)
+>>>>>>> 785acec0b (extism)
 }
 
-func updatePlugin(p *plugin.Plugin) error {
+func updatePlugin(p *plugin.Plugin, out io.Writer) error {
 	exactLocation, err := filepath.EvalSymlinks(p.Dir)
 	if err != nil {
 		return err
 	}
+
 	absExactLocation, err := filepath.Abs(exactLocation)
 	if err != nil {
 		return err
@@ -100,15 +147,26 @@ func updatePlugin(p *plugin.Plugin) error {
 	if err != nil {
 		return err
 	}
-	if err := installer.Update(i); err != nil {
+
+	if _, err := installer.Update(i, settings); err != nil {
 		return err
 	}
 
+<<<<<<< HEAD
 	slog.Debug("loading plugin", "path", i.Path())
 	updatedPlugin, err := plugin.LoadDir(i.Path())
 	if err != nil {
 		return err
 	}
+||||||| parent of 785acec0b (extism)
+	Debug("loading plugin from %s", i.Path())
+	updatedPlugin, err := plugin.LoadDir(i.Path())
+	if err != nil {
+		return err
+	}
+=======
+	fmt.Fprintf(out, "Updated plugin: %s\n", p.Metadata.Name)
+>>>>>>> 785acec0b (extism)
 
-	return runHook(updatedPlugin, plugin.Update)
+	return nil
 }

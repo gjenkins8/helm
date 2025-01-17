@@ -20,19 +20,19 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 
 	"github.com/spf13/cobra"
 
-	"helm.sh/helm/v4/pkg/plugin"
+	plugin "helm.sh/helm/v4/pkg/legacyplugin"
+	"helm.sh/helm/v4/pkg/legacyplugin/installer"
 )
 
-type pluginUninstallOptions struct {
+type pluginUninstallCmd struct {
 	names []string
 }
 
 func newPluginUninstallCmd(out io.Writer) *cobra.Command {
-	o := &pluginUninstallOptions{}
+	o := &pluginUninstallCmd{}
 
 	cmd := &cobra.Command{
 		Use:     "uninstall <plugin>...",
@@ -51,7 +51,7 @@ func newPluginUninstallCmd(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (o *pluginUninstallOptions) complete(args []string) error {
+func (o *pluginUninstallCmd) complete(args []string) error {
 	if len(args) == 0 {
 		return errors.New("please provide plugin name to uninstall")
 	}
@@ -59,23 +59,28 @@ func (o *pluginUninstallOptions) complete(args []string) error {
 	return nil
 }
 
-func (o *pluginUninstallOptions) run(out io.Writer) error {
+func (o *pluginUninstallCmd) run(out io.Writer) error {
 	slog.Debug("loading installer plugins", "dir", settings.PluginsDirectory)
+	Debug("loading installed plugins from %s", settings.PluginsDirectory)
 	plugins, err := plugin.FindPlugins(settings.PluginsDirectory)
 	if err != nil {
 		return err
 	}
 	var errorPlugins []error
+	var errs []error
 	for _, name := range o.names {
-		if found := findPlugin(plugins, name); found != nil {
-			if err := uninstallPlugin(found); err != nil {
-				errorPlugins = append(errorPlugins, fmt.Errorf("failed to uninstall plugin %s, got error (%v)", name, err))
-			} else {
-				fmt.Fprintf(out, "Uninstalled plugin: %s\n", name)
-			}
-		} else {
-			errorPlugins = append(errorPlugins, fmt.Errorf("plugin: %s not found", name))
+		found := findPlugin(plugins, name)
+		if found == nil {
+			errs = append(errs, fmt.Errorf("Plugin: %s not found", name))
+			continue
 		}
+
+		if err := uninstallPlugin(found); err != nil {
+			errs = append(errs, fmt.Errorf("Failed to uninstall plugin %s, got error (%w)", name, err))
+			continue
+		}
+
+		fmt.Fprintf(out, "Uninstalled plugin: %s\n", name)
 	}
 	if len(errorPlugins) > 0 {
 		return errors.Join(errorPlugins...)
@@ -84,10 +89,7 @@ func (o *pluginUninstallOptions) run(out io.Writer) error {
 }
 
 func uninstallPlugin(p *plugin.Plugin) error {
-	if err := os.RemoveAll(p.Dir); err != nil {
-		return err
-	}
-	return runHook(p, plugin.Delete)
+	return installer.Uninstall(p)
 }
 
 func findPlugin(plugins []*plugin.Plugin, name string) *plugin.Plugin {

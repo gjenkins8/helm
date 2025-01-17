@@ -13,5 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package installer provides an interface for installing Helm plugins.
-package installer // import "helm.sh/helm/v4/pkg/plugin/installer"
+package legacyplugin // import "helm.sh/helm/v4/pkg/legacyplugin"
+
+// Types of hooks
+const (
+	// Install is executed after the plugin is added.
+	Install = "install"
+	// Delete is executed after the plugin is removed.
+	Delete = "delete"
+	// Update is executed after the plugin is updated.
+	Update = "update"
+)
+
+// PlatformHooks is a map of events to a command for a particular operating system and architecture.
+type PlatformHooks map[string][]PlatformCommand
+
+// Hooks is a map of events to commands.
+type Hooks map[string]string

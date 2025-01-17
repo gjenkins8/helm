@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"helm.sh/helm/v4/pkg/cli"
-	"helm.sh/helm/v4/pkg/plugin"
+	plugin "helm.sh/helm/v4/pkg/legacyplugin"
 )
 
 // collectPlugins scans for getter plugins.
