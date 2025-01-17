@@ -34,6 +34,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 
+	"helm.sh/helm/v4/internal/plugins"
 	"helm.sh/helm/v4/internal/version"
 	"helm.sh/helm/v4/pkg/helmpath"
 	"helm.sh/helm/v4/pkg/kube"
@@ -89,6 +90,8 @@ type EnvSettings struct {
 	BurstLimit int
 	// QPS is queries per second which may be used to avoid throttling.
 	QPS float32
+
+	PluginManager plugins.PluginManager
 }
 
 func New() *EnvSettings {
@@ -138,6 +141,8 @@ func New() *EnvSettings {
 		config = config.WithDiscoveryBurst(env.BurstLimit)
 	}
 	env.config = config
+
+	env.PluginManager = plugins.PluginManager{}
 
 	return env
 }

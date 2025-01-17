@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package installer // import "helm.sh/helm/v4/pkg/plugin/installer"
+package installer // import "helm.sh/helm/v4/pkg/legacyplugin/installer"
 
 import (
 	"errors"
@@ -55,7 +55,7 @@ func (i *LocalInstaller) Install() error {
 		return ErrPluginNotAFolder
 	}
 
-	if !isPlugin(i.Source) {
+	if !isPluginDir(i.Source) {
 		return ErrMissingMetadata
 	}
 	slog.Debug("symlinking", "source", i.Source, "path", i.Path())

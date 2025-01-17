@@ -1,0 +1,64 @@
+---
+# yaml-language-server: $schema=https://xtp.dylibso.com/assets/wasm/schema.json
+version: v1-draft
+exports:
+  chart_renderer:
+    description: Render a chart into Kubernetes manifests
+    input:
+      description: "Input to the plugin"
+      contentType: application/json
+      $ref: "#/components/schemas/ChartRendererInput"
+    output:
+      description: "Ouput from the plugin"
+      contentType: application/json
+      $ref: "#/components/schemas/ChartRendererOutput"
+
+imports:
+  kubernetes_lookup_object:
+    description: "Lookup Kubernetes object"
+    input:
+      contentType: application/json
+      $ref: "#/components/schemas/HostLookupKubernetesObjectInput"
+    output:
+      contentType: application/json
+      $ref: "#/components/schemas/HostLookupKubernetesObjectOutput"
+
+components:
+  schemas:
+    ChartRendererInput:
+      properties:
+        chart_json:
+          type: string
+          description: "JSON serialized chart object"
+        values_json:
+          type: string
+          description: "JSON serialized render values"
+    ChartRendererRenderedManifest:
+      properties:
+        source_filename:
+          type: string
+        manifest_doc:
+          type: string
+    ChartRendererOutput:
+      properties:
+        manifests:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChartRendererRenderedManifest'
+          description: "List of manifests rendered by the chart renderer"
+    HostLookupKubernetesObjectInput:
+      propterties:
+        api_version:
+          type: string
+        kind:
+          type: string
+        namespace:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+    HostLookupKubernetesObjectOutput:
+      properties:
+        manifest:
+          type: string

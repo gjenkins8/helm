@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package installer // import "helm.sh/helm/v4/pkg/plugin/installer"
+package installer // import "helm.sh/helm/v4/pkg/legacyplugin/installer"
 
 import (
 	"archive/tar"
@@ -36,7 +36,7 @@ import (
 	"helm.sh/helm/v4/pkg/cli"
 	"helm.sh/helm/v4/pkg/getter"
 	"helm.sh/helm/v4/pkg/helmpath"
-	"helm.sh/helm/v4/pkg/plugin/cache"
+	"helm.sh/helm/v4/pkg/legacyplugin/cache"
 )
 
 // HTTPInstaller installs plugins from an archive served by a web server.
@@ -138,7 +138,7 @@ func (i *HTTPInstaller) Install() error {
 		return fmt.Errorf("extracting files from archive: %w", err)
 	}
 
-	if !isPlugin(i.CacheDir) {
+	if !isPluginDir(i.CacheDir) {
 		return ErrMissingMetadata
 	}
 

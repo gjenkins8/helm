@@ -1,0 +1,88 @@
+---
+# yaml-language-server: $schema=https://xtp.dylibso.com/assets/wasm/schema.json
+version: v1-draft
+exports:
+  getter:
+    description: Fetch assets by scheme
+    input:
+      description: "Input to the plugin"
+      contentType: application/json
+      $ref: "#/components/schemas/GetterInput"
+    output:
+      description: "Ouput from the plugin"
+      contentType: application/json
+      $ref: "#/components/schemas/GetterOutput"
+
+#imports:
+  # Your imports or host functions would go here
+  # they have the same shape as exports
+
+components:
+  schemas:
+    GetterOptions:
+     properties:
+       url:
+         type: string
+         description: "The URL to fetch from"
+         nullable: true
+       ca_file:
+         type: string
+         description: "Path to the CA certificate file"
+         nullable: true
+       untar:
+         type: boolean
+         description: "Whether to untar the downloaded file"
+         nullable: true
+       insecure_skip_verify_tls:
+         type: boolean
+         description: "Skip TLS certificate verification"
+         nullable: true
+       plain_http:
+         type: boolean
+         description: "Use plain HTTP instead of HTTPS"
+       accept_header:
+         type: string
+         description: "Custom Accept header for HTTP requests"
+         nullable: true
+       username:
+         type: string
+         description: "Username for authentication"
+         nullable: true
+       password:
+         type: string
+         description: "Password for authentication"
+         nullable: true
+       pass_credentials_all:
+         type: boolean
+         description: "Pass credentials to all domains"
+         nullable: true
+       user_agent:
+         type: string
+         description: "Custom User-Agent header for requests"
+         nullable: true
+       version:
+         type: string
+         description: "Version of the chart to fetch"
+         nullable: true
+       timeout:
+         type: integer
+         description: "Request timeout in seconds"
+         format: int64
+    GetterInput:
+      required:
+      - options
+      - url
+      properties:
+        options:
+          $ref: '#/components/schemas/GetterOptions'
+          description: "Configuration options for the getter"
+        url:
+          type: string
+          description: "The reference URL to fetch the chart from"
+    GetterOutput:
+      required:
+      - data
+      properties:
+        data:
+          type: buffer
+          description: "The retrieved data in binary format"

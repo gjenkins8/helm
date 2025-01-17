@@ -266,7 +266,7 @@ func (p *testClientProvider) GetClientFor(apiVersion, kind string) (dynamic.Name
 	return fake.NewSimpleDynamicClient(runtime.NewScheme(), p.objects...).Resource(props.gvr), props.namespaced, nil
 }
 
-var _ ClientProvider = &testClientProvider{}
+//var _ ClientProvider = &testClientProvider{}
 
 // makeUnstructured is a convenience function for single-line creation of Unstructured objects.
 func makeUnstructured(apiVersion, kind, name, namespace string) *unstructured.Unstructured {

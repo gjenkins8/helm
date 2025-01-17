@@ -18,11 +18,14 @@ package getter
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
+	"helm.sh/helm/v4/internal/plugins"
 	"helm.sh/helm/v4/pkg/cli"
 	"helm.sh/helm/v4/pkg/registry"
 )
@@ -204,12 +207,61 @@ var ociProvider = Provider{
 	New:     NewOCIGetter,
 }
 
+type GetterPlugin struct {
+	options []Option
+	plg     plugins.PluginInstance
+}
+
+type GetterInput struct{}
+
+type GetterOutput struct {
+	Output *bytes.Buffer
+}
+
+func (g *GetterPlugin) Get(url string, option ...Option) (*bytes.Buffer, error) {
+
+	input := GetterInput{}
+	var output GetterOutput
+	err := g.plg.Invoke(context.Background(), input, output)
+
+	return output.Output, err
+}
+
 // All finds all of the registered getters as a list of Provider instances.
 // Currently, the built-in getters and the discovered plugins with downloader
 // notations are collected.
 func All(settings *cli.EnvSettings) Providers {
 	result := Providers{httpProvider, ociProvider}
-	pluginDownloaders, _ := collectPlugins(settings)
-	result = append(result, pluginDownloaders...)
+
+	pluginDescriptor := plugins.PluginDescriptor{
+		Class:   "downloaders",
+		Version: "v1",
+	}
+
+	ps, err := settings.PluginManager.RetrievePlugins(pluginDescriptor)
+	if err != nil {
+	}
+
+	pluginConstructorBuilder := func(p plugins.Plugin) Constructor {
+		return func(option ...Option) (Getter, error) {
+			plg, err := p.CreateInstance()
+			if err != nil {
+				return nil, err
+			}
+
+			return &GetterPlugin{
+				options: append([]Option{}, option...),
+				plg:     plg,
+			}, nil
+		}
+	}
+
+	for _, p := range ps {
+		result = append(result, Provider{
+			Schemes: strings.Split(p.Manifest().Config["downloader_schemes"], ","),
+			New:     pluginConstructorBuilder(p),
+		})
+	}
+
 	return result
 }

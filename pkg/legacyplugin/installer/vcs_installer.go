@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package installer // import "helm.sh/helm/v4/pkg/plugin/installer"
+package installer // import "helm.sh/helm/v4/pkg/legacyplugin/installer"
 
 import (
 	"errors"
@@ -28,7 +28,7 @@ import (
 
 	"helm.sh/helm/v4/internal/third_party/dep/fs"
 	"helm.sh/helm/v4/pkg/helmpath"
-	"helm.sh/helm/v4/pkg/plugin/cache"
+	"helm.sh/helm/v4/pkg/legacyplugin/cache"
 )
 
 // VCSInstaller installs plugins from remote a repository.
@@ -56,16 +56,19 @@ func NewVCSInstaller(source, version string) (*VCSInstaller, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cachedpath := helmpath.CachePath("plugins", key)
 	repo, err := vcs.NewRepo(source, cachedpath)
 	if err != nil {
 		return nil, err
 	}
+
 	i := &VCSInstaller{
 		Repo:    repo,
 		Version: version,
 		base:    newBase(source),
 	}
+
 	return i, nil
 }
 
@@ -87,7 +90,7 @@ func (i *VCSInstaller) Install() error {
 		}
 	}
 
-	if !isPlugin(i.Repo.LocalPath()) {
+	if !isPluginDir(i.Repo.LocalPath()) {
 		return ErrMissingMetadata
 	}
 
@@ -104,7 +107,7 @@ func (i *VCSInstaller) Update() error {
 	if err := i.Repo.Update(); err != nil {
 		return err
 	}
-	if !isPlugin(i.Repo.LocalPath()) {
+	if !isPluginDir(i.Repo.LocalPath()) {
 		return ErrMissingMetadata
 	}
 	return nil

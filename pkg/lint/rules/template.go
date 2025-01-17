@@ -96,8 +96,10 @@ func TemplatesWithSkipSchemaValidation(linter *support.Linter, values map[string
 		linter.RunLinterRule(support.ErrorSev, fpath, err)
 		return
 	}
-	var e engine.Engine
-	e.LintMode = true
+
+	e, err := engine.NewChartRenderer(settings.PluginManager().Catalog())
+	if err != nil {
+	}
 	renderedContentMap, err := e.Render(chart, valuesToRender)
 
 	renderOk := linter.RunLinterRule(support.ErrorSev, fpath, err)
