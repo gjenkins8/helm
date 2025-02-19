@@ -18,14 +18,11 @@ package registry // import "helm.sh/helm/v4/pkg/registry"
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -131,6 +128,7 @@ func NewClient(options ...ClientOption) (*Client, error) {
 		AllowPlaintextPut:        true,
 		DetectDefaultNativeStore: true,
 	}
+
 	store, err := credentials.NewStore(client.credentialsFile, storeOptions)
 	if err != nil {
 		return nil, err
@@ -237,156 +235,80 @@ func ClientOptResolver(_ remotes.Resolver) ClientOption {
 	}
 }
 
-type (
-	// LoginOption allows specifying various settings on login
-	LoginOption func(*loginOperation)
-
-	loginOperation struct {
-		host   string
-		client *Client
-	}
-)
+//func (c *Client) Ping(host string) error {
+//
+//	reg, err := remote.NewRegistry(host)
+//	if err != nil {
+//		return err
+//	}
+//	reg.PlainHTTP = c.plainHTTP
+//	reg.Client = c.authorizer
+//
+//	ctx := context.Background()
+//	cred, err := c.authorizer.Credential(ctx, host)
+//	if err != nil {
+//		return fmt.Errorf("fetching credentials for %q: %w", host, err)
+//	}
+//
+//	if err := reg.Ping(ctx); err != nil {
+//		return fmt.Errorf("authenticating to %q: %w", host, err)
+//	}
+//
+//	key := credentials.ServerAddressFromRegistry(host)
+//	if err := c.credentialsStore.Put(ctx, key, cred); err != nil {
+//		return err
+//	}
+//
+//	fmt.Fprintln(c.out, "Login Succeeded")
+//	return nil
+//}
 
 // Login logs into a registry
-func (c *Client) Login(host string, options ...LoginOption) error {
-	for _, option := range options {
-		option(&loginOperation{host, c})
-	}
-
-	reg, err := remote.NewRegistry(host)
-	if err != nil {
-		return err
-	}
-	reg.PlainHTTP = c.plainHTTP
-	reg.Client = c.authorizer
-
-	ctx := context.Background()
-	cred, err := c.authorizer.Credential(ctx, host)
-	if err != nil {
-		return fmt.Errorf("fetching credentials for %q: %w", host, err)
-	}
-
-	if err := reg.Ping(ctx); err != nil {
-		return fmt.Errorf("authenticating to %q: %w", host, err)
-	}
-
-	key := credentials.ServerAddressFromRegistry(host)
-	if err := c.credentialsStore.Put(ctx, key, cred); err != nil {
-		return err
-	}
-
-	fmt.Fprintln(c.out, "Login Succeeded")
-	return nil
-}
-
-// LoginOptBasicAuth returns a function that sets the username/password settings on login
-func LoginOptBasicAuth(username string, password string) LoginOption {
-	return func(o *loginOperation) {
-		o.client.username = username
-		o.client.password = password
-		o.client.authorizer.Credential = auth.StaticCredential(o.host, auth.Credential{Username: username, Password: password})
-	}
-}
-
-// LoginOptPlainText returns a function that allows plaintext (HTTP) login
-func LoginOptPlainText(isPlainText bool) LoginOption {
-	return func(o *loginOperation) {
-		o.client.plainHTTP = isPlainText
-	}
-}
-
-func ensureTLSConfig(client *auth.Client) (*tls.Config, error) {
-	var transport *http.Transport
-
-	switch t := client.Client.Transport.(type) {
-	case *http.Transport:
-		transport = t
-	case *retry.Transport:
-		switch t := t.Base.(type) {
-		case *http.Transport:
-			transport = t
-		}
-	}
-
-	if transport == nil {
-		// we don't know how to access the http.Transport, most likely the
-		// auth.Client.Client was provided by API user
-		return nil, fmt.Errorf("unable to access TLS client configuration, the provided HTTP Transport is not supported, given: %T", client.Client.Transport)
-	}
-
-	if transport.TLSClientConfig == nil {
-		transport.TLSClientConfig = &tls.Config{}
-	}
-
-	return transport.TLSClientConfig, nil
-}
-
-// LoginOptInsecure returns a function that sets the insecure setting on login
-func LoginOptInsecure(insecure bool) LoginOption {
-	return func(o *loginOperation) {
-		tlsConfig, err := ensureTLSConfig(o.client.authorizer)
-
-		if err != nil {
-			panic(err)
-		}
-
-		tlsConfig.InsecureSkipVerify = insecure
-	}
-}
-
-// LoginOptTLSClientConfig returns a function that sets the TLS settings on login.
-func LoginOptTLSClientConfig(certFile, keyFile, caFile string) LoginOption {
-	return func(o *loginOperation) {
-		if (certFile == "" || keyFile == "") && caFile == "" {
-			return
-		}
-		tlsConfig, err := ensureTLSConfig(o.client.authorizer)
-		if err != nil {
-			panic(err)
-		}
-
-		if certFile != "" && keyFile != "" {
-			authCert, err := tls.LoadX509KeyPair(certFile, keyFile)
-			if err != nil {
-				panic(err)
-			}
-			tlsConfig.Certificates = []tls.Certificate{authCert}
-		}
-
-		if caFile != "" {
-			certPool := x509.NewCertPool()
-			ca, err := os.ReadFile(caFile)
-			if err != nil {
-				panic(err)
-			}
-			if !certPool.AppendCertsFromPEM(ca) {
-				panic(fmt.Errorf("unable to parse CA file: %q", caFile))
-			}
-			tlsConfig.RootCAs = certPool
-		}
-	}
-}
-
-type (
-	// LogoutOption allows specifying various settings on logout
-	LogoutOption func(*logoutOperation)
-
-	logoutOperation struct{}
-)
+// func (c *Client) Login(host string, options ...LoginOption) error {
+//
+// 	for _, option := range options {
+// 		option(&loginOperation{host, c})
+// 	}
+//
+// 	reg, err := remote.NewRegistry(host)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	reg.PlainHTTP = c.plainHTTP
+// 	reg.Client = c.authorizer
+//
+// 	ctx := context.Background()
+// 	cred, err := c.authorizer.Credential(ctx, host)
+// 	if err != nil {
+// 		return fmt.Errorf("fetching credentials for %q: %w", host, err)
+// 	}
+//
+// 	if err := reg.Ping(ctx); err != nil {
+// 		return fmt.Errorf("authenticating to %q: %w", host, err)
+// 	}
+//
+// 	key := credentials.ServerAddressFromRegistry(host)
+// 	if err := c.credentialsStore.Put(ctx, key, cred); err != nil {
+// 		return err
+// 	}
+//
+// 	fmt.Fprintln(c.out, "Login Succeeded")
+// 	return nil
+// }
 
 // Logout logs out of a registry
-func (c *Client) Logout(host string, opts ...LogoutOption) error {
-	operation := &logoutOperation{}
-	for _, opt := range opts {
-		opt(operation)
-	}
-
-	if err := credentials.Logout(context.Background(), c.credentialsStore, host); err != nil {
-		return err
-	}
-	fmt.Fprintf(c.out, "Removing login credentials for %s\n", host)
-	return nil
-}
+// func (c *Client) Logout(host string, opts ...LogoutOption) error {
+// 	operation := &logoutOperation{}
+// 	for _, opt := range opts {
+// 		opt(operation)
+// 	}
+//
+// 	if err := credentials.Logout(context.Background(), c.credentialsStore, host); err != nil {
+// 		return err
+// 	}
+// 	fmt.Fprintf(c.out, "Removing login credentials for %s\n", host)
+// 	return nil
+// }
 
 type (
 	// PullOption allows specifying various settings on pull
