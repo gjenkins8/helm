@@ -218,9 +218,13 @@ type GetterOutput struct {
 	Output *bytes.Buffer
 }
 
-func (g *GetterPlugin) Get(url string, option ...Option) (*bytes.Buffer, error) {
+func (g *GetterPlugin) Get(url string, options ...Option) (*bytes.Buffer, error) {
 
-	input := GetterInput{}
+	o := make([]Option, len(g.options)+len(option))
+	input := GetterInput{
+		URL:     url,
+		Options: append(o, g.options, options...),
+	}
 	var output GetterOutput
 	err := g.plg.Invoke(context.Background(), input, output)
 
@@ -234,11 +238,12 @@ func All(settings *cli.EnvSettings) Providers {
 	result := Providers{httpProvider, ociProvider}
 
 	pluginDescriptor := plugins.PluginDescriptor{
-		Class:   "downloaders",
+		Type:    "downloaders",
 		Version: "v1",
 	}
 
-	ps, err := settings.PluginManager.RetrievePlugins(pluginDescriptor)
+	//ps, err := settings.PluginManager.CollectPlugin(pluginDescriptor)
+	ps, err := settings.PluginManager.CollectPlugins(pluginDescriptor)
 	if err != nil {
 	}
 
@@ -264,4 +269,20 @@ func All(settings *cli.EnvSettings) Providers {
 	}
 
 	return result
+}
+
+func (p *PostRenderer) Run() error {
+	pluginDescriptor := plugins.PluginDescriptor{
+		Type:    "post-render",
+		Version: "v1",
+	}
+
+	plg, err := settings.PluginManager.CollectPlugin(pluginDescriptor)
+
+	input := PostRendererInput{
+		Manifests: map[string]string // filename -> yaml
+	}
+
+	output := PostRendererOutput{}
+	plg.Invoke(context.Background(), input, output)
 }
