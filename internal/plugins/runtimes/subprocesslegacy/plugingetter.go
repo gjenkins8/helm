@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package getter
+package subprocesslegacy
 
 import (
 	"bytes"
@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"helm.sh/helm/v4/pkg/cli"
-	"helm.sh/helm/v4/pkg/plugin"
 )
 
 // collectPlugins scans for getter plugins.

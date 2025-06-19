@@ -28,7 +28,7 @@ import (
 	"github.com/pkg/errors"
 
 	"helm.sh/helm/v4/pkg/cli"
-	"helm.sh/helm/v4/pkg/legacyplugin"
+	"helm.sh/helm/v4/pkg/subprocesslegacy"
 )
 
 type InstalledPlugin struct {
@@ -57,19 +57,19 @@ type Installer interface {
 }
 
 // runHook will execute a plugin hook.
-func runHook(p *legacyplugin.Plugin, event string) error {
+func runHook(p *subprocesslegacy.Plugin, event string) error {
 
 	cmds := p.Metadata.PlatformHooks[event]
 	expandArgs := true
 	if len(cmds) == 0 && len(p.Metadata.Hooks) > 0 {
 		cmd := p.Metadata.Hooks[event]
 		if len(cmd) > 0 {
-			cmds = []legacyplugin.PlatformCommand{{Command: "sh", Args: []string{"-c", cmd}}}
+			cmds = []subprocesslegacy.PlatformCommand{{Command: "sh", Args: []string{"-c", cmd}}}
 			expandArgs = false
 		}
 	}
 
-	main, argv, err := legacyplugin.PrepareCommands(cmds, expandArgs, []string{})
+	main, argv, err := subprocesslegacy.PrepareCommands(cmds, expandArgs, []string{})
 	if err != nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ type PluginInstallHook interface {
 }
 
 // Install installs a plugin.
-func Install(i Installer, settings *cli.EnvSettings) (*legacyplugin.Plugin, error) {
+func Install(i Installer, settings *cli.EnvSettings) (*subprocesslegacy.Plugin, error) {
 	if err := os.MkdirAll(filepath.Dir(i.Path()), 0755); err != nil {
 		return nil, err
 	}
@@ -106,14 +106,14 @@ func Install(i Installer, settings *cli.EnvSettings) (*legacyplugin.Plugin, erro
 	}
 
 	debug("loading plugin from %s", i.Path())
-	p, err := legacyplugin.LoadDir(i.Path())
+	p, err := subprocesslegacy.LoadDir(i.Path())
 	if err != nil {
 		return nil, fmt.Errorf("plugin is installed but unusable: %w", err)
 	}
 
-	legacyplugin.SetupPluginEnv(settings, p.Metadata.Name, p.Dir)
+	subprocesslegacy.SetupPluginEnv(settings, p.Metadata.Name, p.Dir)
 
-	if err := runHook(p, legacyplugin.Install); err != nil {
+	if err := runHook(p, subprocesslegacy.Install); err != nil {
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func Install(i Installer, settings *cli.EnvSettings) (*legacyplugin.Plugin, erro
 }
 
 // Update updates a plugin.
-func Update(i Installer, settings *cli.EnvSettings) (*legacyplugin.Plugin, error) {
+func Update(i Installer, settings *cli.EnvSettings) (*subprocesslegacy.Plugin, error) {
 	if _, pathErr := os.Stat(i.Path()); errors.Is(pathErr, fs.ErrNotExist) {
 		return nil, fmt.Errorf("plugin does not exist")
 	}
@@ -131,26 +131,26 @@ func Update(i Installer, settings *cli.EnvSettings) (*legacyplugin.Plugin, error
 	}
 
 	debug("loading plugin from %s", i.Path())
-	p, err := legacyplugin.LoadDir(i.Path())
+	p, err := subprocesslegacy.LoadDir(i.Path())
 	if err != nil {
 		return nil, fmt.Errorf("plugin is installed but unusable: %w", err)
 	}
 
-	legacyplugin.SetupPluginEnv(settings, p.Metadata.Name, p.Dir)
+	subprocesslegacy.SetupPluginEnv(settings, p.Metadata.Name, p.Dir)
 
-	if err := runHook(p, legacyplugin.Install); err != nil {
+	if err := runHook(p, subprocesslegacy.Install); err != nil {
 		return nil, err
 	}
 
 	return p, nil
 }
 
-func Uninstall(p *legacyplugin.Plugin) error {
+func Uninstall(p *subprocesslegacy.Plugin) error {
 	if err := os.RemoveAll(p.Dir); err != nil {
 		return err
 	}
 
-	return runHook(p, legacyplugin.Delete)
+	return runHook(p, subprocesslegacy.Delete)
 }
 
 // NewInstallerForSource determines the correct Installer for the given source.
@@ -212,7 +212,7 @@ func isRemoteHTTPArchive(source string) bool {
 
 // isPluginDir checks if the directory contains a plugin.yaml file.
 func isPluginDir(dirname string) bool {
-	_, err := os.Stat(filepath.Join(dirname, legacyplugin.PluginFileName))
+	_, err := os.Stat(filepath.Join(dirname, subprocesslegacy.PluginFileName))
 	return err == nil
 }
 

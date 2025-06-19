@@ -89,6 +89,8 @@ type EnvSettings struct {
 	BurstLimit int
 	// QPS is queries per second which may be used to avoid throttling.
 	QPS float32
+
+	PluginManager plugins.PluginManager
 }
 
 func New() *EnvSettings {
@@ -138,6 +140,8 @@ func New() *EnvSettings {
 		config = config.WithDiscoveryBurst(env.BurstLimit)
 	}
 	env.config = config
+
+	env.PluginManager = plugins.PluginManager{}
 
 	return env
 }
