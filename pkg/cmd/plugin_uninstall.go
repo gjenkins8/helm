@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
-	plugin "helm.sh/helm/v4/pkg/subprocesslegacy"
-	"helm.sh/helm/v4/pkg/subprocesslegacy/installer"
+	plugin "helm.sh/helm/v4/internal/plugins/runtimes/subprocesslegacy"
 )
 
 type pluginUninstallOptions struct {

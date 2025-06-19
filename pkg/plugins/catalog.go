@@ -1,5 +1,7 @@
 package plugins
 
+import "errors"
+
 var (
 	PluginCatalogNoMatchingPlugin = errors.New("no matching plugin found")
 
@@ -12,11 +14,11 @@ type PluginCatalog interface {
 	// Errors:
 	// - PluginCatalogNoMatchingPlugin is returned if no matching plugin is found
 	// - PluginCatalogMultipleMatchingPlugins is returned if multiple matching plugins are found
-	CollectPlugin(descriptor plugins.PluginDescriptor) (plugins.PluginInstance, error)
+	CollectPlugin(descriptor PluginDescriptor) (PluginInstance, error)
 
 	// CollectPlugins finds all the plugins matching the given plguin descriptor
 	//
 	// Errors:
 	// - PluginCatalogNoMatchingPlugin is returned if no matching plugin is found
-	CollectPlugins(descriptor plugins.PluginDescriptor) ([]plugins.PluginInstance, error)
+	CollectPlugins(descriptor PluginDescriptor) ([]PluginInstance, error)
 }

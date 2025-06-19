@@ -37,6 +37,7 @@ import (
 	"helm.sh/helm/v4/internal/version"
 	"helm.sh/helm/v4/pkg/helmpath"
 	"helm.sh/helm/v4/pkg/kube"
+	"helm.sh/helm/v4/pkg/plugins"
 )
 
 // defaultMaxHistory sets the maximum number of releases to 0: unlimited
@@ -90,7 +91,16 @@ type EnvSettings struct {
 	// QPS is queries per second which may be used to avoid throttling.
 	QPS float32
 
-	PluginManager plugins.PluginManager
+	PluginCatalog plugins.PluginCatalog
+}
+
+type cliPluginManager struct {
+	Catalog plugins.PluginCatalog
+}
+
+func newCLIPluginManager() *cliPluginManager {
+
+	return nil
 }
 
 func New() *EnvSettings {
@@ -141,7 +151,9 @@ func New() *EnvSettings {
 	}
 	env.config = config
 
-	env.PluginManager = plugins.PluginManager{}
+	pluginManager := newCLIPluginManager()
+
+	env.PluginCatalog = pluginManager.Catalog
 
 	return env
 }

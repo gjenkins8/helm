@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package installer // import "helm.sh/helm/v4/pkg/subprocesslegacy/installer"
+package installer // import "helm.sh/helm/v4/internal/plugins/runtimes/subprocesslegacy/installer"
 
 import (
 	"errors"
@@ -26,9 +26,9 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/Masterminds/vcs"
 
+	"helm.sh/helm/v4/internal/plugins/runtimes/subprocesslegacy/cache"
 	"helm.sh/helm/v4/internal/third_party/dep/fs"
 	"helm.sh/helm/v4/pkg/helmpath"
-	"helm.sh/helm/v4/pkg/subprocesslegacy/cache"
 )
 
 // VCSInstaller installs plugins from remote a repository.

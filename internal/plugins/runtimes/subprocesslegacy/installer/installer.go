@@ -27,8 +27,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"helm.sh/helm/v4/internal/plugins/runtimes/subprocesslegacy"
 	"helm.sh/helm/v4/pkg/cli"
-	"helm.sh/helm/v4/pkg/subprocesslegacy"
 )
 
 type InstalledPlugin struct {
