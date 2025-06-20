@@ -209,7 +209,9 @@ var ociProvider = Provider{
 // notations are collected.
 func All(settings *cli.EnvSettings) Providers {
 	result := Providers{httpProvider, ociProvider}
-	pluginDownloaders, _ := collectPlugins(settings)
-	result = append(result, pluginDownloaders...)
-	return result
+	return append(result, collectPlugins(settings)...)
+}
+
+func collectPlugins(settings *cli.EnvSettings) Providers {
+	return Providers{}
 }
