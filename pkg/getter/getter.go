@@ -212,6 +212,11 @@ func All(settings *cli.EnvSettings) Providers {
 	return append(result, collectPlugins(settings)...)
 }
 
-func collectPlugins(settings *cli.EnvSettings) Providers {
-	return Providers{}
+// All finds all of the registered getters as a list of Provider instances.
+// Currently, the built-in getters and the discovered plugins with downloader
+// notations are collected.
+func All(settings *cli.EnvSettings) Providers {
+	result := Providers{httpProvider, ociProvider}
+
+	return result
 }

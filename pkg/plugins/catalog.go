@@ -1,6 +1,8 @@
 package plugins
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	PluginCatalogNoMatchingPlugin = errors.New("no matching plugin found")
@@ -22,3 +24,7 @@ type PluginCatalog interface {
 	// - PluginCatalogNoMatchingPlugin is returned if no matching plugin is found
 	CollectPlugins(descriptor PluginDescriptor) ([]PluginInstance, error)
 }
+
+//type pluginLoaderCallback interface {
+//
+//}

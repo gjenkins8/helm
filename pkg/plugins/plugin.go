@@ -37,22 +37,6 @@ type PluginDescriptor struct {
 	Version string
 }
 
-type PluginManifest struct {
-	// Kind of the plugin: 'downloader', 'postrenderer', etc
-	// Describing the situation the plugin is expected to be invoked, and the correspondng message types used to invoke
-	Kind string
-
-	// Version of the plugin kind
-	Version string
-
-	// Runtime used to execute the plugin
-	RuntimeClass string
-
-	// Additional config associated with the plugin kind: e.g. downloader URI schemes
-	// (Config is intepreted by the plugin invoker)
-	Config map[string]any
-}
-
 //type PluginClass interface {
 //	CreateInstance() PluginInstance
 //}
