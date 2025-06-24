@@ -209,14 +209,5 @@ var ociProvider = Provider{
 // notations are collected.
 func All(settings *cli.EnvSettings) Providers {
 	result := Providers{httpProvider, ociProvider}
-	return append(result, collectPlugins(settings)...)
-}
-
-// All finds all of the registered getters as a list of Provider instances.
-// Currently, the built-in getters and the discovered plugins with downloader
-// notations are collected.
-func All(settings *cli.EnvSettings) Providers {
-	result := Providers{httpProvider, ociProvider}
-
-	return result
+	return append(result, collectDownloaderPlugins(settings)...)
 }

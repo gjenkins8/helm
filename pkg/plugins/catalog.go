@@ -16,13 +16,13 @@ type PluginCatalog interface {
 	// Errors:
 	// - PluginCatalogNoMatchingPlugin is returned if no matching plugin is found
 	// - PluginCatalogMultipleMatchingPlugins is returned if multiple matching plugins are found
-	CollectPlugin(descriptor PluginDescriptor) (PluginInstance, error)
+	CollectPlugin(descriptor PluginDescriptor) (Plugin, error)
 
 	// CollectPlugins finds all the plugins matching the given plguin descriptor
 	//
 	// Errors:
 	// - PluginCatalogNoMatchingPlugin is returned if no matching plugin is found
-	CollectPlugins(descriptor PluginDescriptor) ([]PluginInstance, error)
+	CollectPlugins(descriptor PluginDescriptor) ([]Plugin, error)
 }
 
 //type pluginLoaderCallback interface {

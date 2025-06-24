@@ -8,7 +8,7 @@ import (
 	"helm.sh/helm/v4/pkg/plugins"
 )
 
-func collectPlugins(settings *cli.EnvSettings) Providers {
+func collectDownloaderPlugins(settings *cli.EnvSettings) Providers {
 
 	pluginDescriptor := plugins.PluginDescriptor{
 		Type:    "downloaders",
@@ -19,7 +19,7 @@ func collectPlugins(settings *cli.EnvSettings) Providers {
 	if err != nil {
 	}
 
-	pluginConstructorBuilder := func(plg plugins.PluginInstance) Constructor {
+	pluginConstructorBuilder := func(plg plugins.Plugin) Constructor {
 		return func(option ...Option) (Getter, error) {
 
 			return &getterPlugin{
@@ -48,26 +48,28 @@ func collectPlugins(settings *cli.EnvSettings) Providers {
 
 type getterPlugin struct {
 	options []Option
-	plg     plugins.PluginInstance
-}
-
-type getterInput struct {
-	URL     string   `json:"url"`
-	Options []Option `json:"options"`
-}
-
-type getterOutput struct {
-	Data *bytes.Buffer `json:"data"`
+	plg     plugins.Plugin
 }
 
 func (g *getterPlugin) Get(url string, options ...Option) (*bytes.Buffer, error) {
 
+	// TODO: can we generate these? (plugin input/outputs)
+	type getterInputV1 struct {
+		URL     string   `json:"url"`
+		Options []Option `json:"options"`
+	}
+
+	// TODO: can we generate these? (plugin input/outputs)
+	type getterOutputV1 struct {
+		Data *bytes.Buffer `json:"data"`
+	}
+
 	o := make([]Option, len(g.options)+len(options))
-	input := getterInput{
+	input := getterInputV1{
 		URL:     url,
 		Options: append(append(o, g.options...), options...),
 	}
-	var output getterOutput
+	var output getterOutputV1
 	err := g.plg.Invoke(context.Background(), input, output)
 
 	return output.Data, err

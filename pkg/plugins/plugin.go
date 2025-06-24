@@ -41,7 +41,7 @@ type PluginDescriptor struct {
 //	CreateInstance() PluginInstance
 //}
 
-type PluginInstance interface {
+type Plugin interface {
 	Manifest() PluginManifest
 	Invoke(ctx context.Context, input any, output any) error
 }

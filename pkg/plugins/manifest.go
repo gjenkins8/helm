@@ -1,5 +1,6 @@
 package plugins
 
+// plugin.yaml definition
 type PluginManifest struct {
 	// APIVersion of the plugin manifest document
 	// Currently: 'plugins.helm.sh/v1alpha1'
@@ -15,6 +16,7 @@ type PluginManifest struct {
 	Type string
 
 	// Runtime used to execute the plugin
+	// subprocesslegacy, extism/v1, etc
 	RuntimeClass string
 
 	// Additional config associated with the plugin kind: e.g. downloader URI schemes
