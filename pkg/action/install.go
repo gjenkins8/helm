@@ -72,10 +72,7 @@ type Install struct {
 	ChartPathOptions
 
 	ClientOnly bool
-	// ForceReplace will, if set to `true`, ignore certain warnings and perform the install anyway.
-	//
-	// This should be used with caution.
-	ForceReplace bool
+	Force      bool
 	// ForceConflicts causes server-side apply to force conflicts ("Overwrite value, become sole manager")
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
 	ForceConflicts bool
@@ -485,7 +482,7 @@ func (i *Install) performInstall(rel *release.Release, toBeAdopted kube.Resource
 		_, err = i.cfg.KubeClient.Update(
 			toBeAdopted,
 			resources,
-			kube.ClientUpdateOptionForceReplace(i.ForceReplace),
+			kube.ClientUpdateOptionForceReplace(i.Force),
 			kube.ClientUpdateOptionForceConflicts(i.ForceConflicts),
 			kube.ClientUpdateOptionServerSideApply(i.ServerSideApply),
 			kube.ClientUpdateOptionThreeWayMerge(useUpdateThreeWayMerge))

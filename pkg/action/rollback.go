@@ -43,10 +43,7 @@ type Rollback struct {
 	DisableHooks bool
 	DryRun       bool
 	Recreate     bool // will (if true) recreate pods after a rollback.
-	// ForceReplace will, if set to `true`, ignore certain warnings and perform the rollback anyway.
-	//
-	// This should be used with caution.
-	ForceReplace bool
+	Force        bool // will (if true) force resource upgrade through uninstall/recreate if needed
 	// ForceConflicts causes server-side apply to force conflicts ("Overwrite value, become sole manager")
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
 	ForceConflicts bool
@@ -210,7 +207,7 @@ func (r *Rollback) performRollback(currentRelease, targetRelease *release.Releas
 	results, err := r.cfg.KubeClient.Update(
 		current,
 		target,
-		kube.ClientUpdateOptionForceReplace(r.ForceReplace),
+		kube.ClientUpdateOptionForceReplace(r.Force),
 		kube.ClientUpdateOptionForceConflicts(r.ForceConflicts),
 		kube.ClientUpdateOptionThreeWayMerge(false))
 

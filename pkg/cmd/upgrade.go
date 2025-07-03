@@ -130,7 +130,7 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 					instClient := action.NewInstall(cfg)
 					instClient.CreateNamespace = createNamespace
 					instClient.ChartPathOptions = client.ChartPathOptions
-					instClient.ForceReplace = client.ForceReplace
+					instClient.Force = client.Force
 					instClient.DryRun = client.DryRun
 					instClient.DryRunOption = client.DryRunOption
 					instClient.DisableHooks = client.DisableHooks
@@ -270,9 +270,7 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 	f.Lookup("dry-run").NoOptDefVal = "client"
 	f.BoolVar(&client.Recreate, "recreate-pods", false, "performs pods restart for the resource if applicable")
 	f.MarkDeprecated("recreate-pods", "functionality will no longer be updated. Consult the documentation for other methods to recreate pods")
-	f.BoolVar(&client.ForceReplace, "force-replace", false, "force resource updates by replacement")
-	f.BoolVar(&client.ForceReplace, "force", false, "deprecated")
-	f.MarkDeprecated("force", "use --force-replace instead")
+	f.BoolVar(&client.Force, "force", false, "force resource updates by a replacement stategy")
 	f.BoolVar(&client.ForceConflicts, "force-conflicts", false, "if set server-side apply will force changes against conflicts")
 	f.StringVar(&client.ServerSideApply, "server-side", "auto", "must be \"true\", \"false\" or \"auto\". Object updates run in the server instead of the client (\"auto\" defaults the value from the previous chart release's method)")
 	f.BoolVar(&client.DisableHooks, "no-hooks", false, "disable pre/post upgrade hooks")
@@ -299,7 +297,7 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 	bindOutputFlag(cmd, &outfmt)
 	bindPostRenderFlag(cmd, &client.PostRenderer)
 	AddWaitFlag(cmd, &client.WaitStrategy)
-	cmd.MarkFlagsMutuallyExclusive("force-replace", "force-conflicts")
+	cmd.MarkFlagsMutuallyExclusive("force", "force-conflicts")
 
 	err := cmd.RegisterFlagCompletionFunc("version", func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) != 2 {

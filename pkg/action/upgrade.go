@@ -78,10 +78,10 @@ type Upgrade struct {
 	// HideSecret can be set to true when DryRun is enabled in order to hide
 	// Kubernetes Secrets in the output. It cannot be used outside of DryRun.
 	HideSecret bool
-	// ForceReplace will, if set to `true`, ignore certain warnings and perform the upgrade anyway.
+	// Force will, if set to `true`, ignore certain warnings and perform the upgrade anyway.
 	//
 	// This should be used with caution.
-	ForceReplace bool
+	Force bool
 	// ForceConflicts causes server-side apply to force conflicts ("Overwrite value, become sole manager")
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
 	ForceConflicts bool
@@ -449,7 +449,7 @@ func (u *Upgrade) releasingUpgrade(c chan<- resultMessage, upgradedRelease *rele
 	results, err := u.cfg.KubeClient.Update(
 		current,
 		target,
-		kube.ClientUpdateOptionForceReplace(u.ForceReplace),
+		kube.ClientUpdateOptionForceReplace(u.Force),
 		kube.ClientUpdateOptionForceConflicts(u.ForceConflicts),
 		kube.ClientUpdateOptionServerSideApply(serverSideApply),
 		kube.ClientUpdateOptionThreeWayMerge(!serverSideApply))
@@ -561,7 +561,7 @@ func (u *Upgrade) failRelease(rel *release.Release, created kube.ResourceList, e
 		rollin.WaitForJobs = u.WaitForJobs
 		rollin.DisableHooks = u.DisableHooks
 		rollin.Recreate = u.Recreate
-		rollin.ForceReplace = u.ForceReplace
+		rollin.Force = u.Force
 		rollin.ForceConflicts = u.ForceConflicts
 		rollin.ServerSideApply = u.ServerSideApply
 		rollin.Timeout = u.Timeout

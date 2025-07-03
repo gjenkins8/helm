@@ -192,9 +192,7 @@ func addInstallFlags(cmd *cobra.Command, f *pflag.FlagSet, client *action.Instal
 	// The true/false part is meant to reflect some legacy behavior while none is equal to "".
 	f.StringVar(&client.DryRunOption, "dry-run", "", "simulate an install. If --dry-run is set with no option being specified or as '--dry-run=client', it will not attempt cluster connections. Setting '--dry-run=server' allows attempting cluster connections.")
 	f.Lookup("dry-run").NoOptDefVal = "client"
-	f.BoolVar(&client.ForceReplace, "force-replace", false, "force resource updates by replacement")
-	f.BoolVar(&client.ForceReplace, "force", false, "deprecated")
-	f.MarkDeprecated("force", "use --force-replace instead")
+	f.BoolVar(&client.Force, "force", false, "force resource updates by a replacement strategy")
 	f.BoolVar(&client.ForceConflicts, "force-conflicts", false, "if set server-side apply will force changes against conflicts")
 	f.BoolVar(&client.ServerSideApply, "server-side", true, "object updates run in the server instead of the client")
 	f.BoolVar(&client.DisableHooks, "no-hooks", false, "prevent hooks from running during install")
@@ -218,7 +216,7 @@ func addInstallFlags(cmd *cobra.Command, f *pflag.FlagSet, client *action.Instal
 	addValueOptionsFlags(f, valueOpts)
 	addChartPathOptionsFlags(f, &client.ChartPathOptions)
 	AddWaitFlag(cmd, &client.WaitStrategy)
-	cmd.MarkFlagsMutuallyExclusive("force-replace", "force-conflicts")
+	cmd.MarkFlagsMutuallyExclusive("force", "force-conflicts")
 
 	err := cmd.RegisterFlagCompletionFunc("version", func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		requiredArgs := 2
