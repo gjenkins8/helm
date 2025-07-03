@@ -356,7 +356,7 @@ func (i *Install) RunWithContext(ctx context.Context, chrt *chart.Chart, vals ma
 		return nil, fmt.Errorf("unable to build kubernetes objects from release manifest: %w", err)
 	}
 
-	// It is safe to use "forceOwnership" here because these are resources currently rendered by the chart.
+	// It is safe to use "force" here because these are resources currently rendered by the chart.
 	err = resources.Visit(setMetadataVisitor(rel.Name, rel.Namespace, true))
 	if err != nil {
 		return nil, err
