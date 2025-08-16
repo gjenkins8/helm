@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"helm.sh/helm/v4/pkg/postrenderer"
+	"helm.sh/helm/v4/pkg/postrender"
 
 	"k8s.io/cli-runtime/pkg/resource"
 
@@ -107,7 +107,7 @@ type Upgrade struct {
 	//
 	// If this is non-nil, then after templates are rendered, they will be sent to the
 	// post renderer before sending to the Kubernetes API server.
-	PostRenderer postrenderer.PostRenderer
+	PostRenderer postrender.PostRenderer
 	// DisableOpenAPIValidation controls whether OpenAPI validation is enforced.
 	DisableOpenAPIValidation bool
 	// Get missing dependencies

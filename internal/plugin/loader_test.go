@@ -17,6 +17,7 @@ package plugin
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,45 +61,77 @@ name: "test-plugin"
 }
 
 func TestLoadDir(t *testing.T) {
-	dirname := "testdata/plugdir/good/hello"
 
-	expect := Metadata{
-		Name:       "hello",
-		Version:    "0.1.0",
-		Type:       "cli/v1",
-		APIVersion: "v1",
-		Runtime:    "subprocess",
-		Config: &ConfigCLI{
-			Usage:       "hello [params]...",
-			ShortHelp:   "echo hello message",
-			LongHelp:    "description",
-			IgnoreFlags: true,
-		},
-		RuntimeConfig: &RuntimeConfigSubprocess{
-			PlatformCommand: []PlatformCommand{
-				{OperatingSystem: "linux", Architecture: "", Command: "sh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.sh"}},
-				{OperatingSystem: "windows", Architecture: "", Command: "pwsh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.ps1"}},
+	makeMetadata := func(apiVersion string) Metadata {
+		usage := "hello [params]..."
+		if apiVersion == "legacy" {
+			usage = "" // Legacy plugins don't have Usage field for command syntax
+		}
+		return Metadata{
+			APIVersion: apiVersion,
+			Name:       fmt.Sprintf("hello-%s", apiVersion),
+			Version:    "0.1.0",
+			Type:       "cli/v1",
+			Runtime:    "subprocess",
+			Config: &ConfigCLI{
+				Usage:       usage,
+				ShortHelp:   "echo hello message",
+				LongHelp:    "description",
+				IgnoreFlags: true,
 			},
-			PlatformHooks: map[string][]PlatformCommand{
-				Install: {
-					{OperatingSystem: "linux", Architecture: "", Command: "sh", Args: []string{"-c", "echo \"installing...\""}},
-					{OperatingSystem: "windows", Architecture: "", Command: "pwsh", Args: []string{"-c", "echo \"installing...\""}},
+			RuntimeConfig: &RuntimeConfigSubprocess{
+				PlatformCommands: []PlatformCommand{
+					{OperatingSystem: "linux", Architecture: "", Command: "sh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.sh"}},
+					{OperatingSystem: "windows", Architecture: "", Command: "pwsh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.ps1"}},
+				},
+				PlatformHooks: map[string][]PlatformCommand{
+					Install: {
+						{OperatingSystem: "linux", Architecture: "", Command: "sh", Args: []string{"-c", "echo \"installing...\""}},
+						{OperatingSystem: "windows", Architecture: "", Command: "pwsh", Args: []string{"-c", "echo \"installing...\""}},
+					},
 				},
 			},
+		}
+	}
+
+	testCases := map[string]struct {
+		dirname    string
+		apiVersion string
+		expect     Metadata
+	}{
+		"legacy": {
+			dirname:    "testdata/plugdir/good/hello-legacy",
+			apiVersion: "legacy",
+			expect:     makeMetadata("legacy"),
+		},
+		"v1": {
+			dirname:    "testdata/plugdir/good/hello-v1",
+			apiVersion: "v1",
+			expect:     makeMetadata("v1"),
 		},
 	}
 
-	plug, err := LoadDir(dirname)
-	require.NoError(t, err, "error loading plugin from %s", dirname)
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			plug, err := LoadDir(tc.dirname)
+			require.NoError(t, err, "error loading plugin from %s", tc.dirname)
 
-	assert.Equal(t, dirname, plug.Dir())
-	assert.EqualValues(t, expect, plug.Metadata())
+			assert.Equal(t, tc.dirname, plug.Dir())
+			assert.EqualValues(t, tc.expect, plug.Metadata())
+		})
+	}
 }
 
 func TestLoadDirDuplicateEntries(t *testing.T) {
-	dirname := "testdata/plugdir/bad/duplicate-entries"
-	if _, err := LoadDir(dirname); err == nil {
-		t.Errorf("successfully loaded plugin with duplicate entries when it should've failed")
+	testCases := map[string]string{
+		"legacy": "testdata/plugdir/bad/duplicate-entries-legacy",
+		"v1":     "testdata/plugdir/bad/duplicate-entries-v1",
+	}
+	for name, dirname := range testCases {
+		t.Run(name, func(t *testing.T) {
+			_, err := LoadDir(dirname)
+			assert.Error(t, err)
+		})
 	}
 }
 
@@ -119,33 +152,6 @@ func TestLoadDirGetter(t *testing.T) {
 				{
 					Protocols: []string{"myprotocol", "myprotocols"},
 					Command:   "echo getter",
-				},
-			},
-		},
-	}
-
-	plug, err := LoadDir(dirname)
-	require.NoError(t, err)
-	assert.Equal(t, dirname, plug.Dir())
-	assert.Equal(t, expect, plug.Metadata())
-}
-
-func TestPostRenderer(t *testing.T) {
-	dirname := "testdata/plugdir/good/postrenderer"
-
-	expect := Metadata{
-		Name:       "postrenderer",
-		Version:    "1.2.3",
-		Type:       "postrenderer/v1",
-		APIVersion: "v1",
-		Runtime:    "subprocess",
-		Config: &ConfigPostrenderer{
-			PostrendererArgs: []string{},
-		},
-		RuntimeConfig: &RuntimeConfigSubprocess{
-			PlatformCommand: []PlatformCommand{
-				{
-					Command: "${HELM_PLUGIN_DIR}/sed-test.sh",
 				},
 			},
 		},
@@ -182,12 +188,19 @@ func TestLoadAll(t *testing.T) {
 	basedir := "testdata/plugdir/good"
 	plugs, err := LoadAll(basedir)
 	require.NoError(t, err)
+	require.NotEmpty(t, plugs, "expected plugins to be loaded from %s", basedir)
 
-	assert.Len(t, plugs, 4)
-	assert.Equal(t, "echo", plugs[0].Metadata().Name)
-	assert.Equal(t, "getter", plugs[1].Metadata().Name)
-	assert.Equal(t, "hello", plugs[2].Metadata().Name)
-	assert.Equal(t, "postrenderer", plugs[3].Metadata().Name)
+	plugsMap := map[string]Plugin{}
+	for _, p := range plugs {
+		plugsMap[p.Metadata().Name] = p
+	}
+
+	assert.Len(t, plugsMap, 6)
+	assert.Contains(t, plugsMap, "echo-legacy")
+	assert.Contains(t, plugsMap, "echo-v1")
+	assert.Contains(t, plugsMap, "getter")
+	assert.Contains(t, plugsMap, "hello-legacy")
+	assert.Contains(t, plugsMap, "hello-v1")
 }
 
 func TestFindPlugins(t *testing.T) {
@@ -214,15 +227,14 @@ func TestFindPlugins(t *testing.T) {
 		{
 			name:     "normal",
 			plugdirs: "./testdata/plugdir/good",
-			expected: 4,
+			expected: 6,
 		},
 	}
 	for _, c := range cases {
 		t.Run(t.Name(), func(t *testing.T) {
-			plugin, _ := LoadAll(c.plugdirs)
-			if len(plugin) != c.expected {
-				t.Errorf("expected: %v, got: %v", c.expected, len(plugin))
-			}
+			plugin, err := LoadAll(c.plugdirs)
+			require.NoError(t, err)
+			assert.Len(t, plugin, c.expected, "expected %d plugins, got %d", c.expected, len(plugin))
 		})
 	}
 }

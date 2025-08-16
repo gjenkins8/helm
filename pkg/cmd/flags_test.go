@@ -101,21 +101,20 @@ func outputFlagCompletionTest(t *testing.T, cmdName string) {
 func TestPostRendererFlagSetOnce(t *testing.T) {
 	cfg := action.Configuration{}
 	client := action.NewInstall(&cfg)
-	settings.PluginsDirectory = "testdata/helmhome/helm/plugins"
 	str := postRendererString{
 		options: &postRendererOptions{
 			renderer: &client.PostRenderer,
 		},
 	}
-	// Set the plugin name once
-	err := str.Set("postrenderer")
+	// Set the binary once
+	err := str.Set("echo")
 	require.NoError(t, err)
 
-	// Set the plugin name again to the same value is not ok
-	err = str.Set("postrenderer")
+	// Set the binary again to the same value is not ok
+	err = str.Set("echo")
 	require.Error(t, err)
 
-	// Set the plugin name again to a different value is not ok
+	// Set the binary again to a different value is not ok
 	err = str.Set("cat")
 	require.Error(t, err)
 }

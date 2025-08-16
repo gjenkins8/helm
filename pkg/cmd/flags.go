@@ -25,7 +25,7 @@ import (
 	"sort"
 	"strings"
 
-	"helm.sh/helm/v4/pkg/postrenderer"
+	"helm.sh/helm/v4/pkg/postrender"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -167,14 +167,14 @@ func (o *outputValue) Set(s string) error {
 }
 
 // TODO there is probably a better way to pass cobra settings than as a param
-func bindPostRenderFlag(cmd *cobra.Command, varRef *postrenderer.PostRenderer, settings *cli.EnvSettings) {
+func bindPostRenderFlag(cmd *cobra.Command, varRef *postrender.PostRenderer, settings *cli.EnvSettings) {
 	p := &postRendererOptions{varRef, "", []string{}}
 	cmd.Flags().Var(&postRendererString{p}, postRenderFlag, "the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path")
 	cmd.Flags().Var(&postRendererArgsSlice{p}, postRenderArgsFlag, "an argument to the post-renderer (can specify multiple)")
 }
 
 type postRendererOptions struct {
-	renderer   *postrenderer.PostRenderer
+	renderer   *postrender.PostRenderer
 	binaryPath string
 	args       []string
 }
@@ -199,7 +199,7 @@ func (p *postRendererString) Set(val string) error {
 		return fmt.Errorf("cannot specify --post-renderer flag more than once")
 	}
 	p.options.binaryPath = val
-	pr, err := postrenderer.NewExec(p.options.binaryPath, p.options.args...)
+	pr, err := postrender.NewExec(p.options.binaryPath, p.options.args...)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (p *postRendererArgsSlice) Set(val string) error {
 		return nil
 	}
 	// overwrite if already create PostRenderer by `post-renderer` flags
-	pr, err := postrenderer.NewExec(p.options.binaryPath, p.options.args...)
+	pr, err := postrender.NewExec(p.options.binaryPath, p.options.args...)
 	if err != nil {
 		return err
 	}
