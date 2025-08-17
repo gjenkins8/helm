@@ -47,16 +47,8 @@ type ConfigGetter struct {
 	Protocols []string `yaml:"protocols"`
 }
 
-// ConfigPostrenderer represents the configuration for postrenderer plugins
-type ConfigPostrenderer struct {
-	// PostrendererArgs are arguments passed to the post-renderer plugin
-	// TODO: remove this field. it is not needed as args are passed from CLI to the plugin
-	PostrendererArgs []string `yaml:"postrendererArgs"`
-}
-
-func (c *ConfigCLI) GetType() string          { return "cli/v1" }
-func (c *ConfigGetter) GetType() string       { return "getter/v1" }
-func (c *ConfigPostrenderer) GetType() string { return "postrenderer/v1" }
+func (c *ConfigCLI) GetType() string    { return "cli/v1" }
+func (c *ConfigGetter) GetType() string { return "getter/v1" }
 
 func (c *ConfigCLI) Validate() error {
 	// Config validation for CLI plugins
@@ -72,11 +64,6 @@ func (c *ConfigGetter) Validate() error {
 			return fmt.Errorf("getter has empty protocol at index %d", i)
 		}
 	}
-	return nil
-}
-
-func (c *ConfigPostrenderer) Validate() error {
-	// Config validation for postrenderer plugins
 	return nil
 }
 

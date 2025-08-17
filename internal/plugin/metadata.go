@@ -174,8 +174,6 @@ func convertMetadataConfig(pluginType string, configRaw map[string]any) (Config,
 		config, err = remarshalConfig[*ConfigCLI](configRaw)
 	case "getter/v1":
 		config, err = remarshalConfig[*ConfigGetter](configRaw)
-	case "postrenderer/v1":
-		config, err = remarshalConfig[*ConfigPostrenderer](configRaw)
 	default:
 		return nil, fmt.Errorf("unsupported plugin type: %s", pluginType)
 	}
