@@ -16,11 +16,9 @@ limitations under the License.
 package plugin
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"os/exec"
 	"syscall"
@@ -110,8 +108,6 @@ func (r *SubprocessPluginRuntime) Invoke(_ context.Context, input *Input) (*Outp
 		return r.runCLI(input)
 	case schema.InputMessageGetterV1:
 		return r.runGetter(input)
-	case schema.InputMessagePostRendererV1:
-		return r.runPostrenderer(input)
 	default:
 		return nil, fmt.Errorf("unsupported subprocess plugin type %q", r.metadata.Type)
 	}
@@ -234,62 +230,6 @@ func (r *SubprocessPluginRuntime) runCLI(input *Input) (*Output, error) {
 
 	return &Output{
 		Message: &schema.OutputMessageCLIV1{},
-	}, nil
-}
-
-func (r *SubprocessPluginRuntime) runPostrenderer(input *Input) (*Output, error) {
-	if _, ok := input.Message.(schema.InputMessagePostRendererV1); !ok {
-		return nil, fmt.Errorf("plugin %q input message does not implement InputMessagePostRendererV1", r.metadata.Name)
-	}
-
-	msg := input.Message.(schema.InputMessagePostRendererV1)
-	extraArgs := msg.ExtraArgs
-	settings := msg.Settings
-
-	// Setup plugin environment
-	SetupPluginEnv(settings, r.metadata.Name, r.pluginDir)
-
-	cmds := r.RuntimeConfig.PlatformCommand
-	if len(cmds) == 0 && len(r.RuntimeConfig.Command) > 0 {
-		cmds = []PlatformCommand{{Command: r.RuntimeConfig.Command}}
-	}
-
-	command, args, err := PrepareCommands(cmds, true, extraArgs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare plugin command: %w", err)
-	}
-
-	// TODO de-duplicate code here by calling RuntimeSubprocess.invokeWithEnv()
-	cmd := exec.Command(
-		command,
-		args...)
-
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	go func() {
-		defer stdin.Close()
-		io.Copy(stdin, msg.Manifests)
-	}()
-
-	postRendered := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-
-	//cmd.Env = pluginExec.env
-	cmd.Stdout = postRendered
-	cmd.Stderr = stderr
-
-	if err := executeCmd(cmd, r.metadata.Name); err != nil {
-		slog.Info("plugin execution failed", slog.String("stderr", stderr.String()))
-		return nil, err
-	}
-
-	return &Output{
-		Message: &schema.OutputMessagePostRendererV1{
-			Manifests: postRendered,
-		},
 	}, nil
 }
 

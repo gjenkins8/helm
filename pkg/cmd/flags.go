@@ -168,16 +168,15 @@ func (o *outputValue) Set(s string) error {
 
 // TODO there is probably a better way to pass cobra settings than as a param
 func bindPostRenderFlag(cmd *cobra.Command, varRef *postrenderer.PostRenderer, settings *cli.EnvSettings) {
-	p := &postRendererOptions{varRef, "", []string{}, settings}
-	cmd.Flags().Var(&postRendererString{p}, postRenderFlag, "the name of a postrenderer type plugin to be used for post rendering. If it exists, the plugin will be used")
+	p := &postRendererOptions{varRef, "", []string{}}
+	cmd.Flags().Var(&postRendererString{p}, postRenderFlag, "the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path")
 	cmd.Flags().Var(&postRendererArgsSlice{p}, postRenderArgsFlag, "an argument to the post-renderer (can specify multiple)")
 }
 
 type postRendererOptions struct {
 	renderer   *postrenderer.PostRenderer
-	pluginName string
+	binaryPath string
 	args       []string
-	settings   *cli.EnvSettings
 }
 
 type postRendererString struct {
@@ -185,7 +184,7 @@ type postRendererString struct {
 }
 
 func (p *postRendererString) String() string {
-	return p.options.pluginName
+	return p.options.binaryPath
 }
 
 func (p *postRendererString) Type() string {
@@ -196,11 +195,11 @@ func (p *postRendererString) Set(val string) error {
 	if val == "" {
 		return nil
 	}
-	if p.options.pluginName != "" {
+	if p.options.binaryPath != "" {
 		return fmt.Errorf("cannot specify --post-renderer flag more than once")
 	}
-	p.options.pluginName = val
-	pr, err := postrenderer.NewPostRendererPlugin(p.options.settings, p.options.pluginName, p.options.args...)
+	p.options.binaryPath = val
+	pr, err := postrenderer.NewExec(p.options.binaryPath, p.options.args...)
 	if err != nil {
 		return err
 	}
@@ -225,11 +224,11 @@ func (p *postRendererArgsSlice) Set(val string) error {
 	// a post-renderer defined by a user may accept empty arguments
 	p.options.args = append(p.options.args, val)
 
-	if p.options.pluginName == "" {
+	if p.options.binaryPath == "" {
 		return nil
 	}
 	// overwrite if already create PostRenderer by `post-renderer` flags
-	pr, err := postrenderer.NewPostRendererPlugin(p.options.settings, p.options.pluginName, p.options.args...)
+	pr, err := postrenderer.NewExec(p.options.binaryPath, p.options.args...)
 	if err != nil {
 		return err
 	}

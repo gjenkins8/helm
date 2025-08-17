@@ -105,7 +105,6 @@ func TestPostRendererFlagSetOnce(t *testing.T) {
 	str := postRendererString{
 		options: &postRendererOptions{
 			renderer: &client.PostRenderer,
-			settings: settings,
 		},
 	}
 	// Set the plugin name once
