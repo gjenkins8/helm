@@ -1,11 +1,11 @@
-name: args
+name: testplugin
 type: cli/v1
 apiVersion: v1
 runtime: subprocess
 config:
-  shortHelp: "echo args"
-  longHelp: "This echos args"
+  shortHelp: "echo test"
+  longHelp: "This echos test"
   ignoreFlags: false
 runtimeConfig:
   platformCommands:
-  - command: "$HELM_PLUGIN_DIR/args.sh"
+  - command: "echo test"
