@@ -80,7 +80,7 @@ func TestLoadDir(t *testing.T) {
 				IgnoreFlags: true,
 			},
 			RuntimeConfig: &RuntimeConfigSubprocess{
-				PlatformCommands: []PlatformCommand{
+				PlatformCommand: []PlatformCommand{
 					{OperatingSystem: "linux", Architecture: "", Command: "sh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.sh"}},
 					{OperatingSystem: "windows", Architecture: "", Command: "pwsh", Args: []string{"-c", "${HELM_PLUGIN_DIR}/hello.ps1"}},
 				},
@@ -151,8 +151,8 @@ func TestLoadDirGetter(t *testing.T) {
 		RuntimeConfig: &RuntimeConfigSubprocess{
 			ProtocolCommands: []SubprocessProtocolCommand{
 				{
-					Protocols:        []string{"myprotocol", "myprotocols"},
-					PlatformCommands: []PlatformCommand{{Command: "echo getter"}},
+					Protocols:       []string{"myprotocol", "myprotocols"},
+					PlatformCommand: []PlatformCommand{{Command: "echo getter"}},
 				},
 			},
 		},
@@ -175,7 +175,7 @@ func TestPostRenderer(t *testing.T) {
 		Runtime:    "subprocess",
 		Config:     &ConfigPostrenderer{},
 		RuntimeConfig: &RuntimeConfigSubprocess{
-			PlatformCommands: []PlatformCommand{
+			PlatformCommand: []PlatformCommand{
 				{
 					Command: "${HELM_PLUGIN_DIR}/sed-test.sh",
 				},

@@ -8,5 +8,5 @@ config:
   longHelp: "This exits with the specified exit code"
   ignoreFlags: false
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "$HELM_PLUGIN_DIR/exitwith.sh"

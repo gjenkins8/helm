@@ -8,5 +8,5 @@ config:
   longHelp: "show all env vars"
   ignoreFlags: false
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "$HELM_PLUGIN_DIR/fullenv.sh"

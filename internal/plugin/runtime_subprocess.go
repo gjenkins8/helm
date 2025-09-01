@@ -33,21 +33,21 @@ import (
 type SubprocessProtocolCommand struct {
 	// Protocols are the list of schemes from the charts URL.
 	Protocols []string `yaml:"protocols"`
-	// PlatformCommands are the platform based commands which the plugin performs
+	// PlatformCommand is the platform based command which the plugin performs
 	// to download for the corresponding getter Protocols.
-	PlatformCommands []PlatformCommand `yaml:"platformCommands"`
+	PlatformCommand []PlatformCommand `yaml:"platformCommand"`
 }
 
 // RuntimeConfigSubprocess implements RuntimeConfig for RuntimeSubprocess
 type RuntimeConfigSubprocess struct {
 	// PlatformCommand is a list containing a plugin command, with a platform selector and support for args.
-	PlatformCommands []PlatformCommand `yaml:"platformCommands"`
+	PlatformCommand []PlatformCommand `yaml:"platformCommand"`
 	// PlatformHooks are commands that will run on plugin events, with a platform selector and support for args.
 	PlatformHooks PlatformHooks `yaml:"platformHooks"`
 	// ProtocolCommands allows the plugin to specify protocol specific commands
 	//
 	// Obsolete/deprecated: This is a compatibility hangover from the old plugin downloader mechanism, which was extended
-	// to support multiple protocols in a given plugin. The commands supplied in PlatformCommands should implement protocol
+	// to support multiple protocols in a given plugin. The command supplied in PlatformCommand should implement protocol
 	// specific logic by inspecting the download URL
 	ProtocolCommands []SubprocessProtocolCommand `yaml:"protocolCommands,omitempty"`
 
@@ -179,7 +179,7 @@ func (r *SubprocessPluginRuntime) runCLI(input *Input) (*Output, error) {
 
 	extraArgs := input.Message.(schema.InputMessageCLIV1).ExtraArgs
 
-	cmds := r.RuntimeConfig.PlatformCommands
+	cmds := r.RuntimeConfig.PlatformCommand
 
 	command, args, err := PrepareCommands(cmds, true, extraArgs)
 	if err != nil {
@@ -208,7 +208,7 @@ func (r *SubprocessPluginRuntime) runPostrenderer(input *Input) (*Output, error)
 	// Setup plugin environment
 	SetupPluginEnv(settings, r.metadata.Name, r.pluginDir)
 
-	cmds := r.RuntimeConfig.PlatformCommands
+	cmds := r.RuntimeConfig.PlatformCommand
 	command, args, err := PrepareCommands(cmds, true, extraArgs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare plugin command: %w", err)

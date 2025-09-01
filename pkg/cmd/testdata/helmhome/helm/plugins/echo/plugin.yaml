@@ -7,5 +7,5 @@ config:
   longHelp: "This echos stuff"
   ignoreFlags: false
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "echo hello"

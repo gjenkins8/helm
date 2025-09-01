@@ -9,5 +9,5 @@ config:
   longHelp: "This echos test"
   ignoreFlags: false
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "${HELM_PLUGIN_DIR}/sed-test.sh"

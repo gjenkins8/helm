@@ -54,7 +54,7 @@ func (r *SubprocessPluginRuntime) runGetter(input *Input) (*Output, error) {
 		return nil, fmt.Errorf("no downloader found for protocol %q", msg.Protocol)
 	}
 
-	command, args, err := PrepareCommands(d.PlatformCommands, false, []string{})
+	command, args, err := PrepareCommands(d.PlatformCommand, false, []string{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare commands for protocol %q: %w", msg.Protocol, err)
 	}

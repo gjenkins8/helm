@@ -25,14 +25,14 @@ func TestValidatePluginData(t *testing.T) {
 	// A mock plugin with no commands
 	mockNoCommand := mockSubprocessCLIPlugin(t, "foo")
 	mockNoCommand.metadata.RuntimeConfig = &RuntimeConfigSubprocess{
-		PlatformCommands: []PlatformCommand{},
-		PlatformHooks:    map[string][]PlatformCommand{},
+		PlatformCommand: []PlatformCommand{},
+		PlatformHooks:   map[string][]PlatformCommand{},
 	}
 
 	// A mock plugin with legacy commands
 	mockLegacyCommand := mockSubprocessCLIPlugin(t, "foo")
 	mockLegacyCommand.metadata.RuntimeConfig = &RuntimeConfigSubprocess{
-		PlatformCommands: []PlatformCommand{
+		PlatformCommand: []PlatformCommand{
 			{
 				Command: "echo \"mock plugin\"",
 			},
