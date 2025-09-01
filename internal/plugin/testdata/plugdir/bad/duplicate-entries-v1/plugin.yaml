@@ -9,7 +9,7 @@ config:
     description
   ignoreFlags: true
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "echo hello"
   platformHooks:
     install:

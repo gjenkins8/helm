@@ -35,13 +35,13 @@ type SubprocessProtocolCommand struct {
 	Protocols []string `yaml:"protocols"`
 	// PlatformCommands are the platform based commands which the plugin performs
 	// to download for the corresponding getter Protocols.
-	PlatformCommands []PlatformCommand `yaml:"platformCommands"`
+	PlatformCommands []PlatformCommand `yaml:"platformCommand"`
 }
 
 // RuntimeConfigSubprocess implements RuntimeConfig for RuntimeSubprocess
 type RuntimeConfigSubprocess struct {
 	// PlatformCommand is a list containing a plugin command, with a platform selector and support for args.
-	PlatformCommands []PlatformCommand `yaml:"platformCommands"`
+	PlatformCommands []PlatformCommand `yaml:"platformCommand"`
 	// PlatformHooks are commands that will run on plugin events, with a platform selector and support for args.
 	PlatformHooks PlatformHooks `yaml:"platformHooks"`
 	// ProtocolCommands allows the plugin to specify protocol specific commands

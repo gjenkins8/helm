@@ -8,5 +8,5 @@ config:
   longHelp: "show the env"
   ignoreFlags: false
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "echo $HELM_PLUGIN_NAME"

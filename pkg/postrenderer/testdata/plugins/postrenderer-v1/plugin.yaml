@@ -4,5 +4,5 @@ type: postrenderer/v1
 apiVersion: v1
 runtime: subprocess
 runtimeConfig:
-  platformCommands:
+  platformCommand:
   - command: "${HELM_PLUGIN_DIR}/sed-test.sh"
