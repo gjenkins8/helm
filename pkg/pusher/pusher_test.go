@@ -18,6 +18,9 @@ package pusher
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"helm.sh/helm/v4/pkg/cli"
 	"helm.sh/helm/v4/pkg/registry"
 )
@@ -29,7 +32,7 @@ func TestProvider(t *testing.T) {
 	}
 
 	if !p.Provides("three") {
-		t.Error("Expected provider to provide three")
+		assert.NotNil(t, g, "Expected provider to provide three")
 	}
 }
 
@@ -40,14 +43,14 @@ func TestProviders(t *testing.T) {
 	}
 
 	if _, err := ps.ByScheme("one"); err != nil {
-		t.Error(err)
+		assert.NoError(t, err)
 	}
 	if _, err := ps.ByScheme("four"); err != nil {
-		t.Error(err)
+		assert.NoError(t, err)
 	}
 
 	if _, err := ps.ByScheme("five"); err == nil {
-		t.Error("Did not expect handler for five")
+		assert.Nil(t, g, "Did not expect handler for five")
 	}
 }
 
@@ -55,7 +58,7 @@ func TestAll(t *testing.T) {
 	env := cli.New()
 	all := All(env)
 	if len(all) != 1 {
-		t.Errorf("expected 1 provider (OCI), got %d", len(all))
+		assert.Len(t, all, 1)
 	}
 }
 
@@ -63,6 +66,6 @@ func TestByScheme(t *testing.T) {
 	env := cli.New()
 	g := All(env)
 	if _, err := g.ByScheme(registry.OCIScheme); err != nil {
-		t.Error(err)
+		assert.NoError(t, err)
 	}
 }
