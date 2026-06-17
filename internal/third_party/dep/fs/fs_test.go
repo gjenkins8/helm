@@ -37,39 +37,42 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRenameWithFallback(t *testing.T) {
 	dir := t.TempDir()
 
 	if err := RenameWithFallback(filepath.Join(dir, "does_not_exists"), filepath.Join(dir, "dst")); err == nil {
-		t.Fatal("expected an error for non existing file, but got nil")
+		require.Fail(t, "expected an error for non existing file, but got nil")
 	}
 
 	srcpath := filepath.Join(dir, "src")
 
 	if srcf, err := os.Create(srcpath); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	} else {
 		srcf.Close()
 	}
 
 	if err := RenameWithFallback(srcpath, filepath.Join(dir, "dst")); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	srcpath = filepath.Join(dir, "a")
 	if err := os.MkdirAll(srcpath, 0o777); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	dstpath := filepath.Join(dir, "b")
 	if err := os.MkdirAll(dstpath, 0o777); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	if err := RenameWithFallback(srcpath, dstpath); err == nil {
-		t.Fatal("expected an error if dst is an existing directory, but got nil")
+		require.Fail(t, "expected an error if dst is an existing directory, but got nil")
 	}
 }
 
@@ -78,7 +81,7 @@ func TestCopyDir(t *testing.T) {
 
 	srcdir := filepath.Join(dir, "src")
 	if err := os.MkdirAll(srcdir, 0o755); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	files := []struct {
@@ -95,28 +98,24 @@ func TestCopyDir(t *testing.T) {
 		fn := filepath.Join(srcdir, file.path)
 		dn := filepath.Dir(fn)
 		if err := os.MkdirAll(dn, 0o755); err != nil {
-			t.Fatal(err)
+			require.NoError(t, err)
 		}
 
 		fh, err := os.Create(fn)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		if _, err = fh.WriteString(file.contents); err != nil {
-			t.Fatal(err)
+			require.NoError(t, err)
 		}
 		fh.Close()
 
 		files[i].fi, err = os.Stat(fn)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 
 	destdir := filepath.Join(dir, "dest")
 	if err := CopyDir(srcdir, destdir); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	// Compare copy against structure indicated in 'files'
@@ -124,31 +123,20 @@ func TestCopyDir(t *testing.T) {
 		fn := filepath.Join(srcdir, file.path)
 		dn := filepath.Dir(fn)
 		dirOK, err := IsDir(dn)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !dirOK {
-			t.Fatalf("expected %s to be a directory", dn)
-		}
+		require.NoError(t, err)
+		require.Truef(t, dirOK, "expected %s to be a directory", dn)
 
 		got, err := os.ReadFile(fn)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		if file.contents != string(got) {
-			t.Fatalf("expected: %s, got: %s", file.contents, string(got))
+			require.Equal(t, file.contents, string(got))
 		}
 
 		gotinfo, err := os.Stat(fn)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
-		if file.fi.Mode() != gotinfo.Mode() {
-			t.Fatalf("expected %s: %#v\n to be the same mode as %s: %#v",
-				file.path, file.fi.Mode(), fn, gotinfo.Mode())
-		}
+		require.Equal(t, file.fi.Mode(), gotinfo.Mode(), "expected %s to have same mode as %s", file.path, fn)
 	}
 }
 
@@ -179,7 +167,7 @@ func TestCopyDirFail_SrcInaccessible(t *testing.T) {
 
 	dstdir = filepath.Join(dir, "dst")
 	if err := CopyDir(srcdir, dstdir); err == nil {
-		t.Fatalf("expected error for CopyDir(%s, %s), got none", srcdir, dstdir)
+		require.Fail(t, "expected error for CopyDir", "srcdir=%s dstdir=%s", srcdir, dstdir)
 	}
 }
 
@@ -204,7 +192,7 @@ func TestCopyDirFail_DstInaccessible(t *testing.T) {
 
 	srcdir = filepath.Join(dir, "src")
 	if err := os.MkdirAll(srcdir, 0o755); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	cleanup := setupInaccessibleDir(t, func(dir string) error {
@@ -214,7 +202,7 @@ func TestCopyDirFail_DstInaccessible(t *testing.T) {
 	defer cleanup()
 
 	if err := CopyDir(srcdir, dstdir); err == nil {
-		t.Fatalf("expected error for CopyDir(%s, %s), got none", srcdir, dstdir)
+		require.Fail(t, "expected error for CopyDir", "srcdir=%s dstdir=%s", srcdir, dstdir)
 	}
 }
 
@@ -226,17 +214,17 @@ func TestCopyDirFail_SrcIsNotDir(t *testing.T) {
 
 	srcdir = filepath.Join(dir, "src")
 	if _, err = os.Create(srcdir); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	dstdir = filepath.Join(dir, "dst")
 
-	if err = CopyDir(srcdir, dstdir); err == nil {
-		t.Fatalf("expected error for CopyDir(%s, %s), got none", srcdir, dstdir)
+	if err := CopyDir(srcdir, dstdir); err == nil {
+		require.Fail(t, "expected error for CopyDir", "srcdir=%s dstdir=%s", srcdir, dstdir)
 	}
 
 	if !errors.Is(err, errSrcNotDir) {
-		t.Fatalf("expected %v error for CopyDir(%s, %s), got %s", errSrcNotDir, srcdir, dstdir, err)
+		require.ErrorIs(t, err, errSrcNotDir, "CopyDir(%s, %s)", srcdir, dstdir)
 	}
 }
 
@@ -247,21 +235,21 @@ func TestCopyDirFail_DstExists(t *testing.T) {
 	dir := t.TempDir()
 
 	srcdir = filepath.Join(dir, "src")
-	if err = os.MkdirAll(srcdir, 0o755); err != nil {
-		t.Fatal(err)
+	if err := os.MkdirAll(srcdir, 0o755); err != nil {
+		require.NoError(t, err)
 	}
 
 	dstdir = filepath.Join(dir, "dst")
-	if err = os.MkdirAll(dstdir, 0o755); err != nil {
-		t.Fatal(err)
+	if err := os.MkdirAll(dstdir, 0o755); err != nil {
+		require.NoError(t, err)
 	}
 
 	if err = CopyDir(srcdir, dstdir); err == nil {
-		t.Fatalf("expected error for CopyDir(%s, %s), got none", srcdir, dstdir)
+		require.Fail(t, "expected error for CopyDir", "srcdir=%s dstdir=%s", srcdir, dstdir)
 	}
 
 	if !errors.Is(err, errDstExist) {
-		t.Fatalf("expected %v error for CopyDir(%s, %s), got %s", errDstExist, srcdir, dstdir, err)
+		require.ErrorIs(t, err, errDstExist, "CopyDir(%s, %s)", srcdir, dstdir)
 	}
 }
 
@@ -289,25 +277,23 @@ func TestCopyDirFailOpen(t *testing.T) {
 
 	srcdir = filepath.Join(dir, "src")
 	if err := os.MkdirAll(srcdir, 0o755); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	srcfn := filepath.Join(srcdir, "file")
 	srcf, err := os.Create(srcfn)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	srcf.Close()
 
 	// setup source file so that it cannot be read
-	if err = os.Chmod(srcfn, 0o222); err != nil {
-		t.Fatal(err)
+	if err := os.Chmod(srcfn, 0o222); err != nil {
+		require.NoError(t, err)
 	}
 
 	dstdir = filepath.Join(dir, "dst")
 
 	if err = CopyDir(srcdir, dstdir); err == nil {
-		t.Fatalf("expected error for CopyDir(%s, %s), got none", srcdir, dstdir)
+		require.Fail(t, "expected error for CopyDir", "srcdir=%s dstdir=%s", srcdir, dstdir)
 	}
 }
 
@@ -315,42 +301,34 @@ func TestCopyFile(t *testing.T) {
 	dir := t.TempDir()
 
 	srcf, err := os.Create(filepath.Join(dir, "srcfile"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	want := "hello world"
 	if _, err := srcf.WriteString(want); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	srcf.Close()
 
 	destf := filepath.Join(dir, "destf")
 	if err := CopyFile(srcf.Name(), destf); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	got, err := os.ReadFile(destf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if want != string(got) {
-		t.Fatalf("expected: %s, got: %s", want, string(got))
+		require.Equal(t, want, string(got))
 	}
 
 	wantinfo, err := os.Stat(srcf.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	gotinfo, err := os.Stat(destf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if wantinfo.Mode() != gotinfo.Mode() {
-		t.Fatalf("expected %s: %#v\n to be the same mode as %s: %#v", srcf.Name(), wantinfo.Mode(), destf, gotinfo.Mode())
+		require.Equal(t, wantinfo.Mode(), gotinfo.Mode(), "expected %s to have same mode as %s", srcf.Name(), destf)
 	}
 }
 
@@ -367,7 +345,7 @@ func TestCopyFileSymlink(t *testing.T) {
 		t.Run(symlink, func(t *testing.T) {
 			var err error
 			if err = CopyFile(symlink, dst); err != nil {
-				t.Fatalf("failed to copy symlink: %s", err)
+				require.NoError(t, err, "failed to copy symlink")
 			}
 
 			var want, got string
@@ -378,11 +356,11 @@ func TestCopyFileSymlink(t *testing.T) {
 				// content as a fall back instead of creating a real symlink.
 				srcb, err := os.ReadFile(symlink)
 				if err != nil {
-					t.Fatalf("%+v", err)
+					require.NoError(t, err)
 				}
 				dstb, err := os.ReadFile(dst)
 				if err != nil {
-					t.Fatalf("%+v", err)
+					require.NoError(t, err)
 				}
 
 				want = string(srcb)
@@ -390,17 +368,17 @@ func TestCopyFileSymlink(t *testing.T) {
 			} else {
 				want, err = os.Readlink(symlink)
 				if err != nil {
-					t.Fatalf("%+v", err)
+					require.NoError(t, err)
 				}
 
 				got, err = os.Readlink(dst)
 				if err != nil {
-					t.Fatalf("could not resolve symlink: %s", err)
+					require.NoError(t, err, "could not resolve symlink")
 				}
 			}
 
 			if want != got {
-				t.Fatalf("resolved path is incorrect. expected %s, got %s", want, got)
+				require.Equal(t, want, got, "resolved path is incorrect")
 			}
 		})
 	}
@@ -424,9 +402,7 @@ func TestCopyFileFail(t *testing.T) {
 	dir := t.TempDir()
 
 	srcf, err := os.Create(filepath.Join(dir, "srcfile"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	srcf.Close()
 
 	var dstdir string
@@ -439,7 +415,7 @@ func TestCopyFileFail(t *testing.T) {
 
 	fn := filepath.Join(dstdir, "file")
 	if err := CopyFile(srcf.Name(), fn); err == nil {
-		t.Fatalf("expected error for %s, got none", fn)
+		require.Fail(t, "expected error, got none", fn)
 	}
 }
 
@@ -464,25 +440,25 @@ func setupInaccessibleDir(t *testing.T, op func(dir string) error) func() {
 
 	cleanup := func() {
 		if err := os.Chmod(subdir, 0o777); err != nil {
-			t.Error(err)
+			assert.NoError(t, err)
 		}
 	}
 
 	if err := os.Mkdir(subdir, 0o777); err != nil {
 		cleanup()
-		t.Fatal(err)
+		require.NoError(t, err)
 		return nil
 	}
 
 	if err := op(subdir); err != nil {
 		cleanup()
-		t.Fatal(err)
+		require.NoError(t, err)
 		return nil
 	}
 
 	if err := os.Chmod(subdir, 0o666); err != nil {
 		cleanup()
-		t.Fatal(err)
+		require.NoError(t, err)
 		return nil
 	}
 
@@ -498,9 +474,7 @@ func TestIsDir(t *testing.T) {
 	}
 
 	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var dn string
 
@@ -532,11 +506,11 @@ func TestIsDir(t *testing.T) {
 	for f, want := range tests {
 		got, err := IsDir(f)
 		if err != nil && !want.err {
-			t.Fatalf("expected no error, got %v", err)
+			require.NoError(t, err)
 		}
 
 		if got != want.exists {
-			t.Fatalf("expected %t for %s, got %t", want.exists, f, got)
+			require.Equal(t, want.exists, got, f)
 		}
 	}
 }
@@ -553,24 +527,22 @@ func TestIsSymlink(t *testing.T) {
 
 	dirPath := filepath.Join(dir, "directory")
 	if err := os.MkdirAll(dirPath, 0o777); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	filePath := filepath.Join(dir, "file")
 	f, err := os.Create(filePath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	f.Close()
 
 	dirSymlink := filepath.Join(dir, "dirSymlink")
 	fileSymlink := filepath.Join(dir, "fileSymlink")
 
 	if err = os.Symlink(dirPath, dirSymlink); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	if err = os.Symlink(filePath, fileSymlink); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	var (
@@ -611,12 +583,12 @@ func TestIsSymlink(t *testing.T) {
 		got, err := IsSymlink(path)
 		if err != nil {
 			if !want.err {
-				t.Errorf("expected no error, got %v", err)
+				require.NoError(t, err)
 			}
 		}
 
 		if got != want.expected {
-			t.Errorf("expected %t for %s, got %t", want.expected, path, got)
+			assert.Equal(t, want.expected, got, path)
 		}
 	}
 }
