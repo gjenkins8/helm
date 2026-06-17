@@ -18,6 +18,9 @@ package util
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"time"
 
 	"helm.sh/helm/v4/pkg/chart/common"
@@ -61,41 +64,39 @@ func TestToRenderValues(t *testing.T) {
 	}
 
 	res, err := ToRenderValuesWithSchemaValidation(c, overrideValues, o, nil, false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Ensure that the top-level values are all set.
 	metamap := res["Chart"].(map[string]any)
 	if name := metamap["Name"]; name.(string) != "test" {
-		t.Errorf("Expected chart name 'test', got %q", name)
+		assert.Equal(t, "test", name)
 	}
 	relmap := res["Release"].(map[string]any)
 	if name := relmap["Name"]; name.(string) != "Seven Voyages" {
-		t.Errorf("Expected release name 'Seven Voyages', got %q", name)
+		assert.Equal(t, "Seven Voyages", name)
 	}
 	if namespace := relmap["Namespace"]; namespace.(string) != "default" {
-		t.Errorf("Expected namespace 'default', got %q", namespace)
+		assert.Equal(t, "default", namespace)
 	}
 	if revision := relmap["Revision"]; revision.(int) != 1 {
-		t.Errorf("Expected revision '1', got %d", revision)
+		assert.Equal(t, 1, revision)
 	}
 	if relmap["IsUpgrade"].(bool) {
-		t.Error("Expected upgrade to be false.")
+		assert.Fail(t, "Expected upgrade to be false.")
 	}
 	if !relmap["IsInstall"].(bool) {
-		t.Error("Expected install to be true.")
+		assert.Fail(t, "Expected install to be true.")
 	}
 	if !res["Capabilities"].(*common.Capabilities).APIVersions.Has("v1") {
-		t.Error("Expected Capabilities to have v1 as an API")
+		assert.Fail(t, "Expected Capabilities to have v1 as an API")
 	}
 	if res["Capabilities"].(*common.Capabilities).KubeVersion.Major != "1" {
-		t.Error("Expected Capabilities to have a Kube version")
+		assert.Fail(t, "Expected Capabilities to have a Kube version")
 	}
 
 	vals := res["Values"].(common.Values)
 	if vals["name"] != "Haroun" {
-		t.Errorf("Expected 'Haroun', got %q (%v)", vals["name"], vals)
+		assert.Equal(t, "Haroun", vals["name"])
 	}
 	where := vals["where"].(map[string]any)
 	expects := map[string]string{
@@ -105,7 +106,7 @@ func TestToRenderValues(t *testing.T) {
 	}
 	for field, expect := range expects {
 		if got := where[field]; got != expect {
-			t.Errorf("Expected %q, got %q (%v)", expect, got, where)
+			assert.Equal(t, expect, got)
 		}
 	}
 }
