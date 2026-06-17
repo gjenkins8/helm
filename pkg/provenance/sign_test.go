@@ -89,14 +89,10 @@ func loadChartMetadataForSigning(t *testing.T, chartPath string) []byte {
 	t.Helper()
 
 	chart, err := loader.LoadFile(chartPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	metadataBytes, err := yaml.Marshal(chart.Metadata)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	return metadataBytes
 }
@@ -106,169 +102,137 @@ func TestMessageBlock(t *testing.T) {
 
 	// Read the chart file data
 	archiveData, err := os.ReadFile(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	out, err := messageBlock(archiveData, filepath.Base(testChartfile), metadataBytes)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	got := out.String()
 
 	if got != testMessageBlock {
-		t.Errorf("Expected:\n%q\nGot\n%q\n", testMessageBlock, got)
+		assert.Equal(t, testMessageBlock, got)
 	}
 }
 
 func TestParseMessageBlock(t *testing.T) {
 	sc, err := parseMessageBlock([]byte(testMessageBlock))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// parseMessageBlock only returns checksums, not metadata (like upstream)
 
 	if lsc := len(sc.Files); lsc != 1 {
-		t.Errorf("Expected 1 file, got %d", lsc)
+		assert.Equal(t, 1, lsc)
 	}
 
 	if hash, ok := sc.Files["hashtest-1.2.3.tgz"]; !ok {
-		t.Error("hashtest file not found in Files")
+		assert.Fail(t, "hashtest file not found in Files")
 	} else if hash != "sha256:c6841b3a895f1444a6738b5d04564a57e860ce42f8519c3be807fb6d9bee7888" {
-		t.Errorf("Unexpected hash: %q", hash)
+		assert.Equal(t, "hashtest", hash)
 	}
 }
 
 func TestLoadKey(t *testing.T) {
 	k, err := loadKey(testKeyfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if _, ok := k.Identities[testKeyName]; !ok {
-		t.Errorf("Expected to load a key for user %q", testKeyName)
+		assert.NotNil(t, k, "Expected to load a key for user %q", testKeyName)
 	}
 }
 
 func TestLoadKeyRing(t *testing.T) {
 	k, err := loadKeyRing(testPubfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if len(k) > 1 {
-		t.Errorf("Expected 1, got %d", len(k))
+		assert.Len(t, k, 1)
 	}
 
 	for _, e := range k {
 		if ii, ok := e.Identities[testKeyName]; !ok {
-			t.Errorf("Expected %s in %v", testKeyName, ii)
+			assert.Contains(t, ii.Name, testKeyName)
 		}
 	}
 }
 
 func TestDigest(t *testing.T) {
 	f, err := os.Open(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer f.Close()
 
 	hash, err := Digest(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sig, err := readSumFile(testSumfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !strings.Contains(sig, hash) {
-		t.Errorf("Expected %s to be in %s", hash, sig)
+		assert.Contains(t, sig, hash)
 	}
 }
 
 func TestNewFromFiles(t *testing.T) {
 	s, err := NewFromFiles(testKeyfile, testPubfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if _, ok := s.Entity.Identities[testKeyName]; !ok {
-		t.Errorf("Expected to load a key for user %q", testKeyName)
+		assert.NotNil(t, k, "Expected to load a key for user %q", testKeyName)
 	}
 }
 
 func TestDigestFile(t *testing.T) {
 	hash, err := DigestFile(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sig, err := readSumFile(testSumfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !strings.Contains(sig, hash) {
-		t.Errorf("Expected %s to be in %s", hash, sig)
+		assert.Contains(t, sig, hash)
 	}
 }
 
 func TestDecryptKey(t *testing.T) {
 	k, err := NewFromKeyring(testPasswordKeyfile, testPasswordKeyName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !k.Entity.PrivateKey.Encrypted {
-		t.Fatal("Key is not encrypted")
+		require.Fail(t, "Key is not encrypted")
 	}
 
 	// We give this a simple callback that returns the password.
 	if err := k.DecryptKey(func(_ string) ([]byte, error) {
 		return []byte("secret"), nil
 	}); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	// Re-read the key (since we already unlocked it)
 	k, err = NewFromKeyring(testPasswordKeyfile, testPasswordKeyName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	// Now we give it a bogus password.
 	if err := k.DecryptKey(func(_ string) ([]byte, error) {
 		return []byte("secrets_and_lies"), nil
 	}); err == nil {
-		t.Fatal("Expected an error when giving a bogus passphrase")
+		require.Fail(t, "Expected an error when giving a bogus passphrase")
 	}
 }
 
 func TestClearSign(t *testing.T) {
 	signer, err := NewFromFiles(testKeyfile, testPubfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	metadataBytes := loadChartMetadataForSigning(t, testChartfile)
 
 	// Read the chart file data
 	archiveData, err := os.ReadFile(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sig, err := signer.ClearSign(archiveData, filepath.Base(testChartfile), metadataBytes)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	t.Logf("Sig:\n%s", sig)
 
 	if !strings.Contains(sig, testMessageBlock) {
-		t.Errorf("expected message block to be in sig: %s", sig)
+		assert.Contains(t, sig, testMessageBlock)
 	}
 }
 
@@ -335,9 +299,7 @@ func (s failSigner) Sign(_ io.Reader, _ []byte, _ crypto.SignerOpts) ([]byte, er
 
 func TestClearSignError(t *testing.T) {
 	signer, err := NewFromFiles(testKeyfile, testPubfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// ensure that signing always fails
 	signer.Entity.PrivateKey.PrivateKey = failSigner{}
@@ -346,63 +308,53 @@ func TestClearSignError(t *testing.T) {
 
 	// Read the chart file data
 	archiveData, err := os.ReadFile(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sig, err := signer.ClearSign(archiveData, filepath.Base(testChartfile), metadataBytes)
 	if err == nil {
-		t.Fatal("didn't get an error from ClearSign but expected one")
+		require.Fail(t, "didn't get an error from ClearSign but expected one")
 	}
 
 	if sig != "" {
-		t.Fatalf("expected an empty signature after failed ClearSign but got %q", sig)
+		require.Empty(t, sig, "expected an empty signature after failed ClearSign")
 	}
 }
 
 func TestVerify(t *testing.T) {
 	signer, err := NewFromFiles(testKeyfile, testPubfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Read the chart file data
 	archiveData, err := os.ReadFile(testChartfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Read the signature file data
 	sigData, err := os.ReadFile(testSigBlock)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if ver, err := signer.Verify(archiveData, sigData, filepath.Base(testChartfile)); err != nil {
-		t.Errorf("Failed to pass verify. Err: %s", err)
+		assert.NoError(t, err, "Failed to pass verify")
 	} else if len(ver.FileHash) == 0 {
-		t.Error("Verification is missing hash.")
+		assert.NotEmpty(t, ver.FileHash, "Verification is missing hash.")
 	} else if ver.SignedBy == nil {
-		t.Error("No SignedBy field")
+		assert.NotEmpty(t, ver.SignedBy, "No SignedBy field")
 	} else if ver.FileName != filepath.Base(testChartfile) {
-		t.Errorf("FileName is unexpectedly %q", ver.FileName)
+		assert.Equal(t, "hashtest-0.1.0.tgz", ver.FileName)
 	}
 
 	// Read the tampered signature file data
 	tamperedSigData, err := os.ReadFile(testTamperedSigBlock)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if _, err = signer.Verify(archiveData, tamperedSigData, filepath.Base(testChartfile)); err == nil {
-		t.Errorf("Expected %s to fail.", testTamperedSigBlock)
+		assert.Fail(t, "Expected tampered sig block to fail")
 	}
 
 	switch err.(type) {
 	case pgperrors.SignatureError:
 		t.Logf("Tampered sig block error: %s (%T)", err, err)
 	default:
-		t.Errorf("Expected invalid signature error, got %q (%T)", err, err)
+		assert.Contains(t, err.Error(), "openpgp")
 	}
 }
 
